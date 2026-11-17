@@ -40,6 +40,7 @@ class MapLauncher {
         mode: MapLaunchMode,
         paneBounds: Rect?,
         freeformKnownBroken: Boolean = false,
+        shrinkPercent: Int = 0,
     ): LaunchOutcome {
         val intent = activity.packageManager.getLaunchIntentForPackage(app.packageName)
             ?: return openStore(activity, app)
@@ -66,7 +67,7 @@ class MapLauncher {
             }
 
             LaunchStrategy.FREEFORM -> {
-                val bounds = paneBounds ?: defaultPaneBounds(activity)
+                val bounds = fitWindow(activity, paneBounds ?: defaultPaneBounds(activity), shrinkPercent)
                 val options = ActivityOptions.makeBasic().setLaunchBounds(bounds)
                 setFreeformWindowingMode(options)
                 start(activity, intent, options.toBundle())
@@ -103,6 +104,23 @@ class MapLauncher {
         } catch (e: ActivityNotFoundException) {
             LaunchOutcome(null, "${app.label} isn't installed, and there's no app store to get it from.")
         }
+    }
+
+    /**
+     * Floating windows get a title bar and border drawn around the bounds we ask for (Samsung's pop-up handle
+     * sits above them), so ask for a slightly smaller rect, then shrink it further by the user's adjustment,
+     * keeping it centred in the box.
+     */
+    private fun fitWindow(activity: Activity, box: Rect, shrinkPercent: Int): Rect {
+        val density = activity.resources.displayMetrics.density
+        val side = (FRAME_SIDE_DP * density).toInt()
+        val top = (FRAME_TOP_DP * density).toInt()
+        val r = Rect(box.left + side, box.top + top, box.right - side, box.bottom - side)
+        val pct = shrinkPercent.coerceIn(0, 40) / 100f
+        val dx = (r.width() * pct / 2).toInt()
+        val dy = (r.height() * pct / 2).toInt()
+        r.inset(dx, dy)
+        return r
     }
 
     private fun defaultPaneBounds(activity: Activity): Rect {
@@ -157,6 +175,8 @@ class MapLauncher {
 
     private companion object {
         const val WINDOWING_MODE_FREEFORM = 5
+        const val FRAME_SIDE_DP = 6
+        const val FRAME_TOP_DP = 28
         const val SPLIT_SETTLE_DELAY_MS = 700L
         const val SPLIT_SETTLE_GUARD_MS = 4000L
     }

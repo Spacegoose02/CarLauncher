@@ -30,6 +30,8 @@ data class LauncherSettings(
     val reopenMapOnHome: Boolean = true,
     /** Set when "inside the map box" was tried and the map opened full screen: Automatic then uses split-screen. */
     val freeformKnownBroken: Boolean = false,
+    /** How much smaller than the box to make the floating map, in percent (some devices add a frame). */
+    val floatingMapShrink: Int = 0,
     val speedUnit: SpeedUnit = SpeedUnit.MPH,
     val themeMode: ThemeMode = ThemeMode.DARK,
     val accent: AccentColor = AccentColor.SKY,

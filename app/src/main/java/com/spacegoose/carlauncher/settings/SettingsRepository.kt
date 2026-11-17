@@ -34,6 +34,7 @@ class SettingsRepository(context: Context) {
         val AUTO_MAP = booleanPreferencesKey("auto_launch_map")
         val REOPEN_MAP = booleanPreferencesKey("reopen_map_on_home")
         val FREEFORM_BROKEN = booleanPreferencesKey("freeform_known_broken")
+        val FLOAT_SHRINK = intPreferencesKey("floating_map_shrink")
         val SPEED_UNIT = stringPreferencesKey("speed_unit")
         val THEME = stringPreferencesKey("theme_mode")
         val ACCENT = stringPreferencesKey("accent")
@@ -51,6 +52,7 @@ class SettingsRepository(context: Context) {
             autoLaunchMap = p[Keys.AUTO_MAP] ?: d.autoLaunchMap,
             reopenMapOnHome = p[Keys.REOPEN_MAP] ?: d.reopenMapOnHome,
             freeformKnownBroken = p[Keys.FREEFORM_BROKEN] ?: d.freeformKnownBroken,
+            floatingMapShrink = p[Keys.FLOAT_SHRINK] ?: d.floatingMapShrink,
             speedUnit = enumOr(p[Keys.SPEED_UNIT], d.speedUnit),
             themeMode = enumOr(p[Keys.THEME], d.themeMode),
             accent = enumOr(p[Keys.ACCENT], d.accent),
@@ -67,6 +69,7 @@ class SettingsRepository(context: Context) {
         p[Keys.AUTO_MAP] = s.autoLaunchMap
         p[Keys.REOPEN_MAP] = s.reopenMapOnHome
         p[Keys.FREEFORM_BROKEN] = s.freeformKnownBroken
+        p[Keys.FLOAT_SHRINK] = s.floatingMapShrink
         p[Keys.SPEED_UNIT] = s.speedUnit.name
         p[Keys.THEME] = s.themeMode.name
         p[Keys.ACCENT] = s.accent.name

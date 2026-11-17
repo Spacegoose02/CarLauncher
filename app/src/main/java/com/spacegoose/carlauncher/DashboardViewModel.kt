@@ -116,7 +116,7 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
 
     fun openMap(activity: ComponentActivity) {
         val s = settings.value
-        val outcome = graph.maps.launch(activity, s.mapApp, s.mapLaunchMode, mapPaneBounds, s.freeformKnownBroken)
+        val outcome = graph.maps.launch(activity, s.mapApp, s.mapLaunchMode, mapPaneBounds, s.freeformKnownBroken, s.floatingMapShrink)
         mapStatus = outcome.message
         val strategy = outcome.strategy ?: return
         viewModelScope.launch {

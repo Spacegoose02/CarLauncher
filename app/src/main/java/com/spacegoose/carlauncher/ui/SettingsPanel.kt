@@ -78,6 +78,13 @@ fun SettingsPanel(
                 Toggle("Open the map when the launcher starts", settings.autoLaunchMap) { v ->
                     onChange { it.copy(autoLaunchMap = v) }
                 }
+                Stepper(
+                    label = "Floating map size",
+                    value = if (settings.floatingMapShrink == 0) "Fills the box" else "${settings.floatingMapShrink}% smaller",
+                    onSmaller = { onChange { it.copy(floatingMapShrink = (it.floatingMapShrink + 4).coerceAtMost(40)) } },
+                    onBigger = { onChange { it.copy(floatingMapShrink = (it.floatingMapShrink - 4).coerceAtLeast(0)) } },
+                )
+                Hint("If the floating map spills out of its box, make it smaller here, then close the map and open it again.")
                 Toggle("Home puts the map back in its box", settings.reopenMapOnHome) { v ->
                     onChange { it.copy(reopenMapOnHome = v) }
                 }
@@ -148,6 +155,22 @@ private fun Hint(text: String) {
 private fun Action(label: String, onClick: () -> Unit) {
     FilledTonalButton(onClick = onClick, modifier = Modifier.padding(vertical = 6.dp).heightIn(min = 56.dp)) {
         Text(label)
+    }
+}
+
+@Composable
+private fun Stepper(label: String, value: String, onSmaller: () -> Unit, onBigger: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = TouchTarget),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        FilledTonalButton(onClick = onSmaller, modifier = Modifier.heightIn(min = 56.dp)) { Text("Smaller") }
+        FilledTonalButton(onClick = onBigger, modifier = Modifier.heightIn(min = 56.dp)) { Text("Bigger") }
     }
 }
 
