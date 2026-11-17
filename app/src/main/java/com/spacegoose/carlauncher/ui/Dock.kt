@@ -5,6 +5,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.spacegoose.carlauncher.apps.AppEntry
 
@@ -47,42 +50,50 @@ fun Dock(
     modifier: Modifier = Modifier,
 ) {
     Surface(modifier, shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface) {
-        Row(
-            Modifier.fillMaxWidth().fillMaxHeight().padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            DockButton(Icons.Filled.Apps, "All apps", onOpenDrawer)
-            DockButton(Icons.Filled.Navigation, "Map", onOpenMap)
-            LazyRow(
-                Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+        BoxWithConstraints(Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
+            // Size the icons so the whole dock fits the space it has (the dock sits under the widget
+            // column next to the map box). Below 48dp the apps scroll instead of shrinking further.
+            val slots = apps.size + 3
+            val gap = 8.dp
+            val fit = (maxWidth - gap * (slots - 1)) / slots
+            val size = minOf(fit, maxHeight - 16.dp, TouchTarget + 8.dp).coerceAtLeast(48.dp)
+            Row(
+                Modifier.fillMaxSize(),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(gap),
             ) {
-                items(apps, key = { it.key }) { app -> DockApp(app, onLaunch, onRemove) }
+                DockButton(Icons.Filled.Apps, "All apps", size, onOpenDrawer)
+                DockButton(Icons.Filled.Navigation, "Map", size, onOpenMap)
+                LazyRow(
+                    Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(gap),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    items(apps, key = { it.key }) { app -> DockApp(app, size, onLaunch, onRemove) }
+                }
+                DockButton(Icons.Filled.Settings, "Launcher settings", size, onOpenSettings)
             }
-            DockButton(Icons.Filled.Settings, "Launcher settings", onOpenSettings)
         }
     }
 }
 
 @Composable
-private fun DockButton(icon: ImageVector, description: String, onClick: () -> Unit) {
-    FilledTonalIconButton(onClick = onClick, modifier = Modifier.size(TouchTarget + 8.dp)) {
-        Icon(icon, description, Modifier.size(36.dp))
+private fun DockButton(icon: ImageVector, description: String, size: Dp, onClick: () -> Unit) {
+    FilledTonalIconButton(onClick = onClick, modifier = Modifier.size(size)) {
+        Icon(icon, description, Modifier.size(size * 0.5f))
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun DockApp(app: AppEntry, onLaunch: (AppEntry) -> Unit, onRemove: (AppEntry) -> Unit) {
+private fun DockApp(app: AppEntry, size: Dp, onLaunch: (AppEntry) -> Unit, onRemove: (AppEntry) -> Unit) {
     var menu by remember { mutableStateOf(false) }
     Box {
         Image(
             app.icon,
             contentDescription = app.label,
             modifier = Modifier
-                .size(TouchTarget + 8.dp)
+                .size(size)
                 .clip(RoundedCornerShape(16.dp))
                 .combinedClickable(onClick = { onLaunch(app) }, onLongClick = { menu = true })
                 .padding(4.dp),
