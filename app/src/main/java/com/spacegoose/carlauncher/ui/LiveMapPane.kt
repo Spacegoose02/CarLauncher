@@ -43,6 +43,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.webkit.UserAgentMetadata
+import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import com.spacegoose.carlauncher.maps.MapApp
@@ -120,6 +122,28 @@ private fun configure(web: WebView, onDiagnostic: (String) -> Unit) {
         useWideViewPort = true
         mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
         userAgentString = userAgentString.replace("; wv", "").replace(Regex("Version/\\S+ "), "")
+    }
+    // Present the WebView like Chrome (the user's choice): no X-Requested-With app tag, and Chrome in the
+    // client hints, since Waze's Live Map data refuses requests that identify as an Android WebView.
+    if (WebViewFeature.isFeatureSupported(WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST)) {
+        WebSettingsCompat.setRequestedWithHeaderOriginAllowList(web.settings, emptySet())
+    }
+    if (WebViewFeature.isFeatureSupported(WebViewFeature.USER_AGENT_METADATA)) {
+        try {
+            val current = WebSettingsCompat.getUserAgentMetadata(web.settings)
+            val brands = current.brandVersionList.map { b ->
+                if (b.brand.contains("WebView")) {
+                    UserAgentMetadata.BrandVersion.Builder()
+                        .setBrand("Google Chrome").setMajorVersion(b.majorVersion).setFullVersion(b.fullVersion).build()
+                } else b
+            }
+            WebSettingsCompat.setUserAgentMetadata(
+                web.settings,
+                UserAgentMetadata.Builder(current).setBrandVersionList(brands).build(),
+            )
+        } catch (e: Exception) {
+            // keep the defaults
+        }
     }
     if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
         WebViewCompat.addDocumentStartJavaScript(web, STORAGE_ACCESS_SHIM, setOf("*"))
