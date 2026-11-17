@@ -5,6 +5,8 @@ import android.content.Intent
 import android.location.Location
 import android.net.Uri
 import android.os.SystemClock
+import android.view.View
+import android.webkit.ConsoleMessage
 import android.webkit.CookieManager
 import android.webkit.GeolocationPermissions
 import android.webkit.WebChromeClient
@@ -12,6 +14,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -59,10 +62,18 @@ private fun liveMapUrl(p: GeoPoint, source: LiveMapSource) = when (source) {
     LiveMapSource.FULL_SITE -> "https://www.waze.com/live-map"
 }
 
+private const val WEBGL_CHECK =
+    "(function(){var c=document.createElement('canvas');" +
+        "return (c.getContext('webgl2')||c.getContext('webgl'))?'yes':'no';})()"
+
 private val WAZE_HOSTS = setOf("embed.waze.com", "www.waze.com", "waze.com")
 
 /** Make the WebView look like Chrome: Google's bot checks (reCAPTCHA) on the Live Map score WebViews low. */
-private fun configure(web: WebView) {
+private fun configure(web: WebView, onDiagnostic: (String) -> Unit) {
+    // The Live Map draws with WebGL. Give the WebView its own hardware layer so its GPU output is composited
+    // in place (it rendered blank, with a stray translucent rectangle elsewhere on screen, without it).
+    web.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+    WebView.setWebContentsDebuggingEnabled(true)
     with(web.settings) {
         javaScriptEnabled = true
         domStorageEnabled = true
@@ -79,6 +90,13 @@ private fun configure(web: WebView) {
         setAcceptThirdPartyCookies(web, true)
     }
     web.webChromeClient = object : WebChromeClient() {
+        override fun onConsoleMessage(message: ConsoleMessage): Boolean {
+            if (message.messageLevel() == ConsoleMessage.MessageLevel.ERROR) {
+                onDiagnostic("Error: " + message.message().take(140))
+            }
+            return false
+        }
+
         override fun onGeolocationPermissionsShowPrompt(origin: String?, callback: GeolocationPermissions.Callback?) {
             // Only Waze's own pages get the location, and only in this map box.
             val host = origin?.let { Uri.parse(it).host }
@@ -121,7 +139,9 @@ fun LiveMapPane(
         }
     }
 
-    Surface(modifier.clip(CardShape), shape = CardShape, color = MaterialTheme.colorScheme.surface) {
+    var diagnostic by remember { mutableStateOf<String?>(null) }
+    // No clip here: clipping the WebView's layer can stop WebGL content from showing.
+    Box(modifier.background(MaterialTheme.colorScheme.surface)) {
         Box(Modifier.fillMaxSize()) {
             val c = center
             if (c == null) {
@@ -137,8 +157,14 @@ fun LiveMapPane(
                 AndroidView(
                     factory = { ctx ->
                         WebView(ctx).apply {
-                            configure(this)
+                            configure(this) { diagnostic = it }
                             webViewClient = object : WebViewClient() {
+                                override fun onPageFinished(view: WebView, url: String?) {
+                                    view.evaluateJavascript(WEBGL_CHECK) { result ->
+                                        if (result?.contains("no") == true) diagnostic = "This web view has no WebGL, which the map needs."
+                                    }
+                                }
+
                                 // Links out of the embed (search, routing) open in the Waze app or browser.
                                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                                     if (request.url.host in WAZE_HOSTS) return false
@@ -162,6 +188,19 @@ fun LiveMapPane(
                     },
                     onRelease = { it.destroy() },
                     modifier = Modifier.fillMaxSize(),
+                )
+            }
+            diagnostic?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 3,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+                        .padding(8.dp),
                 )
             }
             Row(
