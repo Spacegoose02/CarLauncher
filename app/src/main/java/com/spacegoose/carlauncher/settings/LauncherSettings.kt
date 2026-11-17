@@ -26,6 +26,8 @@ data class LauncherSettings(
     val mapApp: MapApp = MapApp.WAZE,
     val mapLaunchMode: MapLaunchMode = MapLaunchMode.AUTO,
     val autoLaunchMap: Boolean = false,
+    /** Pressing Home puts a floating map back in its box. */
+    val reopenMapOnHome: Boolean = true,
     /** Set when "inside the map box" was tried and the map opened full screen: Automatic then uses split-screen. */
     val freeformKnownBroken: Boolean = false,
     val speedUnit: SpeedUnit = SpeedUnit.MPH,

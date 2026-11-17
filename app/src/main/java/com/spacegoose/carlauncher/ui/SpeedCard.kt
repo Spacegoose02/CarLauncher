@@ -37,6 +37,7 @@ fun SpeedCard(
     DashCard(modifier) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val small = fitText(maxWidth, maxHeight, chars = 12, heightFraction = 0.16f, max = 26.dp)
+            val big = fitText(maxWidth, maxHeight, chars = 3, heightFraction = 0.6f)
             Column(
                 Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.Center,
@@ -61,7 +62,6 @@ fun SpeedCard(
                 } else {
                     val hasFix = status == SourceStatus.ACTIVE && reading != null
                     val value = if (hasFix) unit.fromMetersPerSecond(reading!!.metersPerSecond).toString() else "--"
-                    val big = fitText(maxWidth, maxHeight, chars = 3, heightFraction = 0.6f)
                     Text(
                         value,
                         fontSize = big,

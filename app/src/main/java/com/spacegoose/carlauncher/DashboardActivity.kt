@@ -55,6 +55,11 @@ class DashboardActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        if (intent.getBooleanExtra(EXTRA_FROM_HOME, false)) vm.onHomePressed(this)
+    }
+
     override fun onStart() {
         super.onStart()
         vm.onStart()

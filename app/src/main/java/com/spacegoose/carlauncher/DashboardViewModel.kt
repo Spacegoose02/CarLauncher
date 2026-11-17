@@ -47,6 +47,10 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     var settingsOpen by mutableStateOf(false)
     var mapStatus by mutableStateOf<String?>(null)
 
+    /** True after the map opened inside its box this session; Home then puts it back there. */
+    var mapInBox = false
+        private set
+
     /** The map pane's bounds in screen pixels, for the floating-window fallback. */
     var mapPaneBounds: Rect? = null
 
@@ -92,6 +96,13 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
         graph.vehicle.start()
     }
 
+    /** Home was pressed: bring a floating map back into its box (it may have been minimized or covered). */
+    fun onHomePressed(activity: ComponentActivity) {
+        drawerOpen = false
+        settingsOpen = false
+        if (mapInBox && settings.value.reopenMapOnHome) openMap(activity)
+    }
+
     fun onBack() {
         when {
             settingsOpen -> settingsOpen = false
@@ -123,7 +134,10 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
         val label = s.mapApp.label
         val dashboardVisible = activity.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
         when (strategy) {
-            LaunchStrategy.FREEFORM -> if (!dashboardVisible) {
+            LaunchStrategy.FREEFORM -> if (dashboardVisible) {
+                mapInBox = true
+            } else {
+                mapInBox = false
                 if (s.mapLaunchMode == MapLaunchMode.AUTO) {
                     updateSettings { it.copy(freeformKnownBroken = true) }
                     mapStatus = "This device opened $label full screen instead of inside the box, " +

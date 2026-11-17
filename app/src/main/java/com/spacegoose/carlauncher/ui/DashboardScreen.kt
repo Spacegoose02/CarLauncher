@@ -38,6 +38,7 @@ import com.spacegoose.carlauncher.layout.WidgetType
 import com.spacegoose.carlauncher.settings.LauncherSettings
 
 private val Gap = 16.dp
+private const val OverlayWidthFraction = 0.44f
 
 @Composable
 fun DashboardScreen(vm: DashboardViewModel) {
@@ -149,7 +150,9 @@ fun DashboardScreen(vm: DashboardViewModel) {
             )
         }
 
-        if (vm.drawerOpen) {
+        // With the map floating in its box, overlays stay in the widget column so the map never covers them.
+        val overlayModifier = if (wide) Modifier.fillMaxHeight().fillMaxWidth(OverlayWidthFraction) else Modifier.fillMaxSize()
+        if (vm.drawerOpen) Box(overlayModifier) {
             AppDrawer(
                 apps = apps,
                 isDocked = vm::isDocked,
@@ -160,7 +163,7 @@ fun DashboardScreen(vm: DashboardViewModel) {
                 onClose = { vm.drawerOpen = false },
             )
         }
-        if (vm.settingsOpen) {
+        if (vm.settingsOpen) Box(overlayModifier) {
             SettingsPanel(
                 settings = settings,
                 onChange = vm::updateSettings,

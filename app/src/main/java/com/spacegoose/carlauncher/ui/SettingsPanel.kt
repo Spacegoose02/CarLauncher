@@ -78,6 +78,9 @@ fun SettingsPanel(
                 Toggle("Open the map when the launcher starts", settings.autoLaunchMap) { v ->
                     onChange { it.copy(autoLaunchMap = v) }
                 }
+                Toggle("Home puts the map back in its box", settings.reopenMapOnHome) { v ->
+                    onChange { it.copy(reopenMapOnHome = v) }
+                }
                 if (settings.freeformKnownBroken) {
                     Hint("Automatic uses split-screen because the map didn't open inside the box last time.")
                     Action("Try inside the map box again") { onChange { it.copy(freeformKnownBroken = false) } }
