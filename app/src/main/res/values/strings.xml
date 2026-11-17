@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Car Launcher</string>
+    <string name="notification_listener_label">Car Launcher media controls</string>
+    <string name="split_helper_label">Car Launcher split-screen helper</string>
+    <string name="split_helper_description">Lets Car Launcher enter split-screen so your map app can open beside the dashboard on Android 7 to 11. It does not read the screen.</string>
+</resources>
