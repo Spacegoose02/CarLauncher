@@ -78,12 +78,16 @@ fun SettingsPanel(
                 Toggle("Open the map when the launcher starts", settings.autoLaunchMap) { v ->
                     onChange { it.copy(autoLaunchMap = v) }
                 }
+                if (settings.freeformKnownBroken) {
+                    Hint("Automatic uses split-screen because the map didn't open inside the box last time.")
+                    Action("Try inside the map box again") { onChange { it.copy(freeformKnownBroken = false) } }
+                }
                 if (Build.VERSION.SDK_INT < 32) {
                     val running = SplitScreenAccessibilityService.isRunning
                     Hint(
                         if (running) "Split-screen helper is on: the map can open beside the dashboard."
                         else "This Android version can't start split-screen on its own. Turn on the " +
-                            "\"Car Launcher split-screen helper\" in Accessibility to allow it, or use a floating window."
+                            "\"Car Launcher split-screen helper\" in Accessibility to allow it."
                     )
                     if (!running) Action("Open Accessibility settings") { open(Settings.ACTION_ACCESSIBILITY_SETTINGS) }
                 }
@@ -108,7 +112,7 @@ fun SettingsPanel(
                 Section("Look")
                 Choice("Theme", ThemeMode.entries, settings.themeMode, { it.label }) { v -> onChange { it.copy(themeMode = v) } }
                 AccentPicker(settings.accent) { v -> onChange { it.copy(accent = v) } }
-                Toggle("Hide status and navigation bars", settings.hideSystemBars) { v ->
+                Toggle("Full screen (hide status bar, navigation bar and taskbar)", settings.hideSystemBars) { v ->
                     onChange { it.copy(hideSystemBars = v) }
                 }
 

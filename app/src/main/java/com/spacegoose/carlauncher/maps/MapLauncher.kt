@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.SystemClock
 import android.provider.Settings
 import com.spacegoose.carlauncher.HomeActivity
+import org.lsposed.hiddenapibypass.HiddenApiBypass
 
 data class LaunchOutcome(val strategy: LaunchStrategy?, val message: String)
 
@@ -22,22 +23,29 @@ data class LaunchOutcome(val strategy: LaunchStrategy?, val message: String)
  */
 class MapLauncher {
 
-    fun capabilities(activity: Activity) = WindowCapabilities(
+    fun capabilities(activity: Activity, freeformKnownBroken: Boolean = false) = WindowCapabilities(
         sdkInt = Build.VERSION.SDK_INT,
         supportsSplitScreen = systemBool("config_supportsSplitScreenMultiWindow", default = true) &&
             systemBool("config_supportsMultiWindow", default = true),
         inMultiWindow = activity.isInMultiWindowMode,
         freeformSupported = freeformSupported(activity),
         splitHelperEnabled = SplitScreenAccessibilityService.isRunning,
+        freeformKnownBroken = freeformKnownBroken,
     )
 
     /** [paneBounds] is the dashboard's map pane in screen coordinates, used for the floating window. */
-    fun launch(activity: Activity, app: MapApp, mode: MapLaunchMode, paneBounds: Rect?): LaunchOutcome {
+    fun launch(
+        activity: Activity,
+        app: MapApp,
+        mode: MapLaunchMode,
+        paneBounds: Rect?,
+        freeformKnownBroken: Boolean = false,
+    ): LaunchOutcome {
         val intent = activity.packageManager.getLaunchIntentForPackage(app.packageName)
             ?: return openStore(activity, app)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
-        return when (val strategy = MapLaunchPlanner.plan(mode, capabilities(activity))) {
+        return when (val strategy = MapLaunchPlanner.plan(mode, capabilities(activity, freeformKnownBroken))) {
             LaunchStrategy.LAUNCH_ADJACENT -> {
                 start(activity, intent.addFlags(Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT))
                 LaunchOutcome(strategy, "Opened ${app.label} in split-screen.")
@@ -62,7 +70,7 @@ class MapLauncher {
                 val options = ActivityOptions.makeBasic().setLaunchBounds(bounds)
                 setFreeformWindowingMode(options)
                 start(activity, intent, options.toBundle())
-                LaunchOutcome(strategy, "Opened ${app.label} in a floating window over the map area.")
+                LaunchOutcome(strategy, "Opened ${app.label} inside the map box.")
             }
 
             LaunchStrategy.FULLSCREEN -> {
@@ -111,11 +119,23 @@ class MapLauncher {
         } catch (e: Exception) {
             false
         }
-        return feature || devOption
+        // Samsung tablets support "pop-up view" (freeform) even where the feature flag isn't declared.
+        val samsung = Build.MANUFACTURER.equals("samsung", ignoreCase = true)
+        return feature || devOption || samsung
     }
 
-    /** ActivityOptions.setLaunchWindowingMode is hidden; it's needed on Android 10/11 head units with freeform. */
+    /**
+     * ActivityOptions.setLaunchWindowingMode is a hidden API. Without it, most devices (Samsung included) ignore
+     * the launch bounds and open the app full screen, so the hidden-API check is lifted for ActivityOptions only.
+     */
     private fun setFreeformWindowingMode(options: ActivityOptions) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            try {
+                HiddenApiBypass.addHiddenApiExemptions("Landroid/app/ActivityOptions;")
+            } catch (t: Throwable) {
+                // Fall through: plain reflection may still work on some builds.
+            }
+        }
         try {
             ActivityOptions::class.java
                 .getMethod("setLaunchWindowingMode", Int::class.javaPrimitiveType)

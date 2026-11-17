@@ -35,3 +35,21 @@ fun DashCard(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> 
         Box(Modifier.padding(20.dp), content = content)
     }
 }
+
+/**
+ * A font size that fits [chars] characters in [maxWidth] and takes at most [heightFraction] of [maxHeight].
+ * Cards are sized by the screen (and shrink in split-screen), so their big text scales with them.
+ */
+@androidx.compose.runtime.Composable
+fun fitText(
+    maxWidth: androidx.compose.ui.unit.Dp,
+    maxHeight: androidx.compose.ui.unit.Dp,
+    chars: Int,
+    heightFraction: Float,
+    max: androidx.compose.ui.unit.Dp = 400.dp,
+): androidx.compose.ui.unit.TextUnit {
+    val byHeight = maxHeight * heightFraction
+    val byWidth = maxWidth / (chars.coerceAtLeast(1) * 0.62f)
+    val size = minOf(byHeight, byWidth, max).coerceAtLeast(10.dp)
+    return with(androidx.compose.ui.platform.LocalDensity.current) { size.toSp() }
+}

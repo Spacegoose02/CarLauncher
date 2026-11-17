@@ -14,7 +14,19 @@ class MapLaunchPlannerTest {
         inMultiWindow: Boolean = false,
         freeform: Boolean = false,
         helper: Boolean = false,
-    ) = WindowCapabilities(sdk, split, inMultiWindow, freeform, helper)
+        freeformBroken: Boolean = false,
+    ) = WindowCapabilities(sdk, split, inMultiWindow, freeform, helper, freeformBroken)
+
+    @Test fun `automatic prefers the map box when floating windows work`() {
+        assertEquals(LaunchStrategy.FREEFORM, MapLaunchPlanner.plan(MapLaunchMode.AUTO, caps(sdk = 34, freeform = true)))
+    }
+
+    @Test fun `automatic falls back to split once the map box failed`() {
+        assertEquals(
+            LaunchStrategy.LAUNCH_ADJACENT,
+            MapLaunchPlanner.plan(MapLaunchMode.AUTO, caps(sdk = 34, freeform = true, freeformBroken = true)),
+        )
+    }
 
     @Test fun `android 12L and later launch adjacent from full screen`() {
         assertEquals(LaunchStrategy.LAUNCH_ADJACENT, MapLaunchPlanner.plan(MapLaunchMode.AUTO, caps(sdk = 33)))
@@ -27,12 +39,11 @@ class MapLaunchPlannerTest {
     @Test fun `android 10 head unit uses the accessibility helper when it is on`() {
         assertEquals(
             LaunchStrategy.ENTER_SPLIT_THEN_ADJACENT,
-            MapLaunchPlanner.plan(MapLaunchMode.AUTO, caps(sdk = 29, helper = true, freeform = true)),
+            MapLaunchPlanner.plan(MapLaunchMode.AUTO, caps(sdk = 29, helper = true)),
         )
     }
 
-    @Test fun `android 10 without the helper falls back to freeform, then full screen`() {
-        assertEquals(LaunchStrategy.FREEFORM, MapLaunchPlanner.plan(MapLaunchMode.AUTO, caps(sdk = 29, freeform = true)))
+    @Test fun `android 10 without the helper or freeform opens full screen`() {
         assertEquals(LaunchStrategy.FULLSCREEN, MapLaunchPlanner.plan(MapLaunchMode.AUTO, caps(sdk = 29)))
     }
 

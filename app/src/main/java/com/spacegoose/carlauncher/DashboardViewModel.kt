@@ -1,6 +1,10 @@
 package com.spacegoose.carlauncher
 
-import android.app.Activity
+import androidx.activity.ComponentActivity
+import androidx.lifecycle.Lifecycle
+import com.spacegoose.carlauncher.maps.LaunchStrategy
+import com.spacegoose.carlauncher.maps.MapLaunchMode
+import kotlinx.coroutines.delay
 import android.app.Application
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -99,10 +103,42 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { graph.settings.update(transform) }
     }
 
-    fun openMap(activity: Activity) {
+    fun openMap(activity: ComponentActivity) {
         val s = settings.value
-        val outcome = graph.maps.launch(activity, s.mapApp, s.mapLaunchMode, mapPaneBounds)
+        val outcome = graph.maps.launch(activity, s.mapApp, s.mapLaunchMode, mapPaneBounds, s.freeformKnownBroken)
         mapStatus = outcome.message
+        val strategy = outcome.strategy ?: return
+        viewModelScope.launch {
+            delay(VERIFY_DELAY_MS)
+            verifyMapLaunch(activity, strategy, s)
+        }
+    }
+
+    /**
+     * Android doesn't say whether a window mode was honoured, so look at the result: a floating window
+     * leaves the dashboard visible, split-screen puts it in multi-window, and full screen hides it.
+     */
+    private fun verifyMapLaunch(activity: ComponentActivity, strategy: LaunchStrategy, s: LauncherSettings) {
+        if (activity.isDestroyed) return
+        val label = s.mapApp.label
+        val dashboardVisible = activity.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+        when (strategy) {
+            LaunchStrategy.FREEFORM -> if (!dashboardVisible) {
+                if (s.mapLaunchMode == MapLaunchMode.AUTO) {
+                    updateSettings { it.copy(freeformKnownBroken = true) }
+                    mapStatus = "This device opened $label full screen instead of inside the box, " +
+                        "so Automatic will use split-screen from now on."
+                } else {
+                    mapStatus = "This device opened $label full screen instead of inside the box. " +
+                        "Try Split-screen in settings."
+                }
+            }
+            LaunchStrategy.LAUNCH_ADJACENT, LaunchStrategy.ENTER_SPLIT_THEN_ADJACENT ->
+                mapStatus = if (activity.isInMultiWindowMode) "$label is open in split-screen."
+                else "Split-screen didn't start, so $label opened full screen. " +
+                    "Turn on the split-screen helper in settings, or pick another mode."
+            LaunchStrategy.FULLSCREEN -> Unit
+        }
     }
 
     fun launchApp(context: Context, entry: AppEntry) {
@@ -153,6 +189,10 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
         val old = settings.value.wavelengthWidgetId
         if (old != id) graph.wavelengthWidget.delete(old)
         updateSettings { it.copy(wavelengthWidgetId = id) }
+    }
+
+    private companion object {
+        const val VERIFY_DELAY_MS = 3000L
     }
 
     private fun resolveDock(s: LauncherSettings, list: List<AppEntry>): List<AppEntry> {

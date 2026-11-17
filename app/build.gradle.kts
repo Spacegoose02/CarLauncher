@@ -55,6 +55,8 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     // MediaBrowserCompat / MediaControllerCompat: talks to Wavelength's MediaBrowserService
     implementation("androidx.media:media:1.7.0")
+    // Lets the launcher ask for a freeform window (ActivityOptions.setLaunchWindowingMode is a hidden API)
+    implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.1")
 
     testImplementation("junit:junit:4.13.2")
 }

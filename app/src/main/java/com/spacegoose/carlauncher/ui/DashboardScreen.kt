@@ -1,6 +1,7 @@
 package com.spacegoose.carlauncher.ui
 
 import android.app.Activity
+import androidx.activity.ComponentActivity
 import android.graphics.Rect
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -66,7 +67,7 @@ fun DashboardScreen(vm: DashboardViewModel) {
             bindWidget.launch(request)
         }
     }
-    val openMap: () -> Unit = { activity?.let(vm::openMap) }
+    val openMap: () -> Unit = { (activity as? ComponentActivity)?.let(vm::openMap) }
 
     @Composable
     fun Widget(type: WidgetType, modifier: Modifier) {

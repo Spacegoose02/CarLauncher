@@ -26,10 +26,12 @@ data class LauncherSettings(
     val mapApp: MapApp = MapApp.WAZE,
     val mapLaunchMode: MapLaunchMode = MapLaunchMode.AUTO,
     val autoLaunchMap: Boolean = false,
+    /** Set when "inside the map box" was tried and the map opened full screen: Automatic then uses split-screen. */
+    val freeformKnownBroken: Boolean = false,
     val speedUnit: SpeedUnit = SpeedUnit.MPH,
     val themeMode: ThemeMode = ThemeMode.DARK,
     val accent: AccentColor = AccentColor.SKY,
-    val hideSystemBars: Boolean = false,
+    val hideSystemBars: Boolean = true,
     val mediaSource: MediaSourcePreference = MediaSourcePreference.WAVELENGTH_FIRST,
     /** The hosted Wavelength "Now playing" widget, or -1 when none is added. */
     val wavelengthWidgetId: Int = NO_WIDGET,

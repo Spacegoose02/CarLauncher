@@ -4,6 +4,7 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
@@ -13,7 +14,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.spacegoose.carlauncher.vehicle.SourceStatus
 import com.spacegoose.carlauncher.vehicle.SpeedReading
 import com.spacegoose.carlauncher.vehicle.SpeedUnit
@@ -31,46 +35,54 @@ fun SpeedCard(
     ) { onPermissionResult() }
 
     DashCard(modifier) {
-        Column(
-            Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            if (status == SourceStatus.NEEDS_PERMISSION) {
-                Text(
-                    "Speed needs location access",
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center,
-                )
-                Button(
-                    onClick = {
-                        permissionLauncher.launch(
-                            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-                        )
-                    },
-                    modifier = Modifier.heightIn(min = TouchTarget),
-                ) { Text("Allow") }
-            } else {
-                val value = if (status == SourceStatus.ACTIVE && reading != null) {
-                    unit.fromMetersPerSecond(reading.metersPerSecond).toString()
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val small = fitText(maxWidth, maxHeight, chars = 12, heightFraction = 0.16f, max = 26.dp)
+            Column(
+                Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                if (status == SourceStatus.NEEDS_PERMISSION) {
+                    Text(
+                        "Speed needs location",
+                        fontSize = small,
+                        lineHeight = small,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                    )
+                    Button(
+                        onClick = {
+                            permissionLauncher.launch(
+                                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+                            )
+                        },
+                        modifier = Modifier.heightIn(min = 56.dp),
+                    ) { Text("Allow") }
                 } else {
-                    "--"
+                    val hasFix = status == SourceStatus.ACTIVE && reading != null
+                    val value = if (hasFix) unit.fromMetersPerSecond(reading!!.metersPerSecond).toString() else "--"
+                    val big = fitText(maxWidth, maxHeight, chars = 3, heightFraction = 0.6f)
+                    Text(
+                        value,
+                        fontSize = big,
+                        lineHeight = big,
+                        fontWeight = FontWeight.Light,
+                        color = if (hasFix) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                    Text(
+                        when (status) {
+                            SourceStatus.UNAVAILABLE -> "GPS is off"
+                            SourceStatus.WAITING -> "No GPS fix yet"
+                            else -> unit.label
+                        },
+                        fontSize = small,
+                        lineHeight = small,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
-                Text(
-                    value,
-                    style = MaterialTheme.typography.displayLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
-                )
-                Text(
-                    when (status) {
-                        SourceStatus.UNAVAILABLE -> "GPS off"
-                        SourceStatus.WAITING -> "${unit.label} · finding GPS"
-                        else -> unit.label
-                    },
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
     }

@@ -60,6 +60,12 @@ class DashboardActivity : ComponentActivity() {
         vm.onStart()
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // Dialogs, the notification shade and permission prompts bring the bars back: hide them again.
+        if (hasFocus) applySystemBars(vm.settings.value.hideSystemBars)
+    }
+
     override fun onStop() {
         vm.onStop()
         super.onStop()

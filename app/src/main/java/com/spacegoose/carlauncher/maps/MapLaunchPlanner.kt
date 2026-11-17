@@ -8,7 +8,7 @@ enum class MapApp(val packageName: String, val label: String) {
 enum class MapLaunchMode(val label: String) {
     AUTO("Automatic"),
     SPLIT_SCREEN("Split-screen"),
-    FREEFORM("Floating window"),
+    FREEFORM("Inside the map box"),
     FULLSCREEN("Full screen"),
 }
 
@@ -17,7 +17,7 @@ enum class LaunchStrategy {
     LAUNCH_ADJACENT,
     /** Android 7-11 from full screen: the accessibility helper enters split-screen first, then launch adjacent. */
     ENTER_SPLIT_THEN_ADJACENT,
-    /** A freeform window placed over the dashboard's map pane. */
+    /** A freeform (Samsung "pop-up view") window placed exactly over the dashboard's map pane. */
     FREEFORM,
     FULLSCREEN,
 }
@@ -28,6 +28,8 @@ data class WindowCapabilities(
     val inMultiWindow: Boolean,
     val freeformSupported: Boolean,
     val splitHelperEnabled: Boolean,
+    /** A floating window was tried before and Android opened the map full screen instead. */
+    val freeformKnownBroken: Boolean = false,
 )
 
 /** Picks how to open the map app. Pure so it can be unit tested. */
@@ -45,7 +47,11 @@ object MapLaunchPlanner {
         }
         val freeform = if (caps.freeformSupported) LaunchStrategy.FREEFORM else null
         return when (mode) {
-            MapLaunchMode.AUTO -> split ?: freeform ?: LaunchStrategy.FULLSCREEN
+            // Prefer the map inside its box; split-screen when floating windows aren't available or failed before.
+            // Already split (the dashboard is half the screen, no box to fill): keep using split-screen.
+            MapLaunchMode.AUTO ->
+                if (caps.inMultiWindow && split != null) split
+                else (if (caps.freeformKnownBroken) null else freeform) ?: split ?: LaunchStrategy.FULLSCREEN
             MapLaunchMode.SPLIT_SCREEN -> split ?: LaunchStrategy.FULLSCREEN
             MapLaunchMode.FREEFORM -> freeform ?: LaunchStrategy.FULLSCREEN
             MapLaunchMode.FULLSCREEN -> LaunchStrategy.FULLSCREEN

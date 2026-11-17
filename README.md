@@ -9,12 +9,12 @@ and a dock of your car apps.
 
 | | |
 |---|---|
-| **Waze beside the dashboard** | The map pane opens Waze (or Google Maps) next to the widgets. It tries split-screen first, then a floating window over the map pane, then plain full screen, depending on what the device supports. You can force a mode in settings. |
+| **Waze in the map box** | The map pane opens Waze (or Google Maps) as a floating window sized to the box. Where floating windows aren't available, it uses split-screen, and otherwise full screen. The launcher checks what actually happened and stops trying the box if the device ignored it. You can force a mode in settings. |
 | **Wavelength media card** | Talks to Wavelength directly through its media browser service, so it needs no extra permission. It shows the track, artist and cover with large previous, play/pause and next buttons. It can also host Wavelength's own "Now playing" home-screen widget. |
 | **Other music apps** | With notification access granted, the card also follows Spotify, YouTube Music, podcasts and so on. Choose "Wavelength first", "Wavelength only" or "Whatever is playing". |
 | **GPS speedometer** | Big digits in mph or km/h. It works out speed from the last two fixes when the GPS module doesn't report it. |
 | **Dock and app drawer** | Long-press an app in the drawer to add it to the dock, and long-press a dock icon to remove it. The drawer has search. |
-| **Theming** | Dark, light or follow-system, six accent colours, and an option to hide the status and navigation bars. |
+| **Theming** | Dark, light or follow-system, and six accent colours. Full screen is on by default: the status bar, navigation bar and taskbar are hidden, and you swipe from an edge to show them. |
 
 Everything is sized for driving: touch targets are at least 64dp and the text is large.
 
@@ -37,10 +37,10 @@ Third-party apps can't embed Waze or read its alerts, so the launcher shows Waze
 
 | Device | What happens with "Automatic" |
 |---|---|
+| Floating windows available (Samsung pop-up view, freeform head units, Android desktop windowing) | Waze opens as a floating window over the map box. If Android opens it full screen instead, Automatic switches to split-screen from then on. |
 | Android 12L or newer (most current tablets) | Waze opens with `FLAG_ACTIVITY_LAUNCH_ADJACENT` and the system splits the screen. |
 | Already in split-screen | Waze opens in the other half. |
 | Android 7 to 11 with the split-screen helper on | The helper enters split-screen, then Waze opens in the other half. |
-| Freeform windows enabled (some head units, or the "enable freeform windows" developer option) | Waze opens as a floating window placed over the map pane. |
 | None of the above | Waze opens full screen. Press Home to come back. |
 
 When the launcher is half of a split screen, it switches to a compact layout with the widgets only.

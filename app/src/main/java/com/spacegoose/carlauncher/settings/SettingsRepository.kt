@@ -32,6 +32,7 @@ class SettingsRepository(context: Context) {
         val MAP_APP = stringPreferencesKey("map_app")
         val MAP_MODE = stringPreferencesKey("map_launch_mode")
         val AUTO_MAP = booleanPreferencesKey("auto_launch_map")
+        val FREEFORM_BROKEN = booleanPreferencesKey("freeform_known_broken")
         val SPEED_UNIT = stringPreferencesKey("speed_unit")
         val THEME = stringPreferencesKey("theme_mode")
         val ACCENT = stringPreferencesKey("accent")
@@ -47,6 +48,7 @@ class SettingsRepository(context: Context) {
             mapApp = enumOr(p[Keys.MAP_APP], d.mapApp),
             mapLaunchMode = enumOr(p[Keys.MAP_MODE], d.mapLaunchMode),
             autoLaunchMap = p[Keys.AUTO_MAP] ?: d.autoLaunchMap,
+            freeformKnownBroken = p[Keys.FREEFORM_BROKEN] ?: d.freeformKnownBroken,
             speedUnit = enumOr(p[Keys.SPEED_UNIT], d.speedUnit),
             themeMode = enumOr(p[Keys.THEME], d.themeMode),
             accent = enumOr(p[Keys.ACCENT], d.accent),
@@ -61,6 +63,7 @@ class SettingsRepository(context: Context) {
         p[Keys.MAP_APP] = s.mapApp.name
         p[Keys.MAP_MODE] = s.mapLaunchMode.name
         p[Keys.AUTO_MAP] = s.autoLaunchMap
+        p[Keys.FREEFORM_BROKEN] = s.freeformKnownBroken
         p[Keys.SPEED_UNIT] = s.speedUnit.name
         p[Keys.THEME] = s.themeMode.name
         p[Keys.ACCENT] = s.accent.name
