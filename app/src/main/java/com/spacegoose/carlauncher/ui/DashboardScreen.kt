@@ -103,51 +103,52 @@ fun DashboardScreen(vm: DashboardViewModel) {
             .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.safeDrawing)
     ) {
-        Column(Modifier.fillMaxSize().padding(Gap), verticalArrangement = Arrangement.spacedBy(Gap)) {
-            Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Gap)) {
-                Column(
-                    Modifier.weight(if (wide) 0.42f else 1f).fillMaxHeight(),
-                    verticalArrangement = Arrangement.spacedBy(Gap),
-                ) {
-                    rows.forEach { row ->
-                        Row(
-                            Modifier.weight(row.weight).fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(Gap),
-                        ) {
-                            row.widgets.forEach { Widget(it, Modifier.weight(1f).fillMaxHeight()) }
-                        }
+        // Wide: widgets and dock on the left, a full-height map box on the right (Samsung won't make a
+        // floating window shorter than the app's minimum height, so the box gets all the height there is).
+        // Narrow (we're one half of split-screen): widgets and dock only.
+        Row(Modifier.fillMaxSize().padding(Gap), horizontalArrangement = Arrangement.spacedBy(Gap)) {
+            Column(
+                Modifier.weight(if (wide) 0.42f else 1f).fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(Gap),
+            ) {
+                rows.forEach { row ->
+                    Row(
+                        Modifier.weight(row.weight).fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Gap),
+                    ) {
+                        row.widgets.forEach { Widget(it, Modifier.weight(1f).fillMaxHeight()) }
                     }
                 }
-                if (wide) {
-                    MapPane(
-                        mapApp = settings.mapApp,
-                        mode = settings.mapLaunchMode,
-                        status = vm.mapStatus,
-                        onOpenMap = openMap,
-                        modifier = Modifier
-                            .weight(0.58f)
-                            .fillMaxHeight()
-                            .onGloballyPositioned { coords ->
-                                val r = coords.boundsInWindow()
-                                val origin = IntArray(2)
-                                activity?.window?.decorView?.getLocationOnScreen(origin)
-                                vm.mapPaneBounds = Rect(
-                                    r.left.toInt() + origin[0], r.top.toInt() + origin[1],
-                                    r.right.toInt() + origin[0], r.bottom.toInt() + origin[1],
-                                )
-                            },
-                    )
-                }
+                Dock(
+                    apps = dock,
+                    onOpenDrawer = { vm.drawerOpen = true },
+                    onOpenMap = openMap,
+                    onOpenSettings = { vm.settingsOpen = true },
+                    onLaunch = { vm.launchApp(context, it) },
+                    onRemove = vm::removeFromDock,
+                    modifier = Modifier.fillMaxWidth().height(96.dp),
+                )
             }
-            Dock(
-                apps = dock,
-                onOpenDrawer = { vm.drawerOpen = true },
-                onOpenMap = openMap,
-                onOpenSettings = { vm.settingsOpen = true },
-                onLaunch = { vm.launchApp(context, it) },
-                onRemove = vm::removeFromDock,
-                modifier = Modifier.fillMaxWidth().height(96.dp),
-            )
+            if (wide) {
+                MapPane(
+                    mapApp = settings.mapApp,
+                    mode = settings.mapLaunchMode,
+                    status = vm.mapStatus,
+                    onOpenMap = openMap,
+                    modifier = Modifier
+                        .weight(0.58f)
+                        .fillMaxHeight()
+                        .onGloballyPositioned { coords ->
+                            val r = coords.boundsInWindow()
+                            val origin = IntArray(2)
+                            activity?.window?.decorView?.getLocationOnScreen(origin)
+                            vm.mapPaneBounds = Rect(
+                                r.left.toInt() + origin[0], r.top.toInt() + origin[1],
+                                r.right.toInt() + origin[0], r.bottom.toInt() + origin[1],
+                            )
+                        },
+                )
+            }
         }
 
         // With the map floating in its box, overlays stay in the widget column so the map never covers them.
