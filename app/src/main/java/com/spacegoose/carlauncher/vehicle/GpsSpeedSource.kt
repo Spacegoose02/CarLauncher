@@ -21,6 +21,8 @@ class GpsSpeedSource(context: Context) : VehicleDataSource, LocationListener {
     private val _status = MutableStateFlow(SourceStatus.WAITING)
     override val speed: StateFlow<SpeedReading?> = _speed.asStateFlow()
     override val status: StateFlow<SourceStatus> = _status.asStateFlow()
+    private val _position = MutableStateFlow<GeoPoint?>(null)
+    override val position: StateFlow<GeoPoint?> = _position.asStateFlow()
 
     private var running = false
     private var previous: Location? = null
@@ -38,6 +40,13 @@ class GpsSpeedSource(context: Context) : VehicleDataSource, LocationListener {
             return
         }
         try {
+            // Start the live map somewhere sensible before the first GPS fix.
+            if (_position.value == null) {
+                locationManager.allProviders
+                    .mapNotNull { p -> runCatching { locationManager.getLastKnownLocation(p) }.getOrNull() }
+                    .maxByOrNull { it.time }
+                    ?.let { _position.value = GeoPoint(it.latitude, it.longitude) }
+            }
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 500L, 0f, this, Looper.getMainLooper())
             running = true
             _status.value =
@@ -65,6 +74,7 @@ class GpsSpeedSource(context: Context) : VehicleDataSource, LocationListener {
             if (last != null && seconds > 0f) last.distanceTo(location) / seconds else 0f
         }
         previous = location
+        _position.value = GeoPoint(location.latitude, location.longitude)
         _speed.value = SpeedReading(metersPerSecond, SystemClock.elapsedRealtime())
         _status.value = SourceStatus.ACTIVE
     }

@@ -12,6 +12,8 @@ enum class SpeedUnit(val label: String, private val perMeterPerSecond: Double) {
 
 data class SpeedReading(val metersPerSecond: Float, val timeMillis: Long)
 
+data class GeoPoint(val lat: Double, val lon: Double)
+
 enum class SourceStatus { NEEDS_PERMISSION, UNAVAILABLE, WAITING, ACTIVE }
 
 /**
@@ -20,6 +22,8 @@ enum class SourceStatus { NEEDS_PERMISSION, UNAVAILABLE, WAITING, ACTIVE }
  */
 interface VehicleDataSource {
     val speed: StateFlow<SpeedReading?>
+    /** Where the car is, for the live map. Sources without a position (OBD2) leave it null. */
+    val position: StateFlow<GeoPoint?>
     val status: StateFlow<SourceStatus>
     fun start()
     fun stop()

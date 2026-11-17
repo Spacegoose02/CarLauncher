@@ -36,6 +36,8 @@ import com.spacegoose.carlauncher.DashboardViewModel
 import com.spacegoose.carlauncher.layout.DashboardLayout
 import com.spacegoose.carlauncher.layout.WidgetType
 import com.spacegoose.carlauncher.settings.LauncherSettings
+import com.spacegoose.carlauncher.settings.MapPaneContent
+import com.spacegoose.carlauncher.vehicle.SourceStatus
 
 private val Gap = 16.dp
 private const val OverlayWidthFraction = 0.44f
@@ -52,6 +54,7 @@ fun DashboardScreen(vm: DashboardViewModel) {
     val wavelengthInstalled by vm.wavelengthInstalled.collectAsStateWithLifecycle()
     val speed by vm.speed.collectAsStateWithLifecycle()
     val speedStatus by vm.speedStatus.collectAsStateWithLifecycle()
+    val position by vm.position.collectAsStateWithLifecycle()
 
     // Wide window: widgets + map pane. Narrow (we're one half of split-screen): widgets only, Waze has the rest.
     val wide = LocalConfiguration.current.screenWidthDp >= 600
@@ -130,24 +133,35 @@ fun DashboardScreen(vm: DashboardViewModel) {
                 )
             }
             if (wide) {
-                MapPane(
-                    mapApp = settings.mapApp,
-                    mode = settings.mapLaunchMode,
-                    status = vm.mapStatus,
-                    onOpenMap = openMap,
-                    modifier = Modifier
-                        .weight(0.58f)
-                        .fillMaxHeight()
-                        .onGloballyPositioned { coords ->
-                            val r = coords.boundsInWindow()
-                            val origin = IntArray(2)
-                            activity?.window?.decorView?.getLocationOnScreen(origin)
-                            vm.mapPaneBounds = Rect(
-                                r.left.toInt() + origin[0], r.top.toInt() + origin[1],
-                                r.right.toInt() + origin[0], r.bottom.toInt() + origin[1],
-                            )
-                        },
-                )
+                val paneModifier = Modifier
+                    .weight(0.58f)
+                    .fillMaxHeight()
+                    .onGloballyPositioned { coords ->
+                        val r = coords.boundsInWindow()
+                        val origin = IntArray(2)
+                        activity?.window?.decorView?.getLocationOnScreen(origin)
+                        vm.mapPaneBounds = Rect(
+                            r.left.toInt() + origin[0], r.top.toInt() + origin[1],
+                            r.right.toInt() + origin[0], r.bottom.toInt() + origin[1],
+                        )
+                    }
+                if (settings.mapPaneContent == MapPaneContent.LIVE_MAP) {
+                    LiveMapPane(
+                        position = position,
+                        locationAllowed = speedStatus != SourceStatus.NEEDS_PERMISSION,
+                        mapApp = settings.mapApp,
+                        onOpenMap = openMap,
+                        modifier = paneModifier,
+                    )
+                } else {
+                    MapPane(
+                        mapApp = settings.mapApp,
+                        mode = settings.mapLaunchMode,
+                        status = vm.mapStatus,
+                        onOpenMap = openMap,
+                        modifier = paneModifier,
+                    )
+                }
             }
         }
 

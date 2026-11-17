@@ -39,6 +39,7 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     val wavelengthInstalled = graph.media.wavelengthInstalled
     val speed = graph.vehicle.speed
     val speedStatus = graph.vehicle.status
+    val position = graph.vehicle.position
 
     val dockApps: StateFlow<List<AppEntry>> = combine(settings, apps) { s, list -> resolveDock(s, list) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())

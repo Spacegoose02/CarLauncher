@@ -4,6 +4,12 @@ import com.spacegoose.carlauncher.maps.MapApp
 import com.spacegoose.carlauncher.maps.MapLaunchMode
 import com.spacegoose.carlauncher.vehicle.SpeedUnit
 
+/** What the map box shows while the map app isn't floating over it. */
+enum class MapPaneContent(val label: String) {
+    LIVE_MAP("Waze Live Map"),
+    BUTTON("Open button only"),
+}
+
 enum class ThemeMode(val label: String) { DARK("Dark"), LIGHT("Light"), SYSTEM("Follow system") }
 
 enum class AccentColor(val label: String, val argb: Long) {
@@ -25,6 +31,7 @@ enum class MediaSourcePreference(val label: String) {
 data class LauncherSettings(
     val mapApp: MapApp = MapApp.WAZE,
     val mapLaunchMode: MapLaunchMode = MapLaunchMode.AUTO,
+    val mapPaneContent: MapPaneContent = MapPaneContent.LIVE_MAP,
     val autoLaunchMap: Boolean = false,
     /** Pressing Home puts a floating map back in its box. */
     val reopenMapOnHome: Boolean = true,

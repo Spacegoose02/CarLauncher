@@ -44,6 +44,7 @@ import com.spacegoose.carlauncher.maps.MapLaunchMode
 import com.spacegoose.carlauncher.maps.SplitScreenAccessibilityService
 import com.spacegoose.carlauncher.settings.AccentColor
 import com.spacegoose.carlauncher.settings.LauncherSettings
+import com.spacegoose.carlauncher.settings.MapPaneContent
 import com.spacegoose.carlauncher.settings.MediaSourcePreference
 import com.spacegoose.carlauncher.settings.ThemeMode
 import com.spacegoose.carlauncher.vehicle.SpeedUnit
@@ -72,6 +73,9 @@ fun SettingsPanel(
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 Section("Map")
                 Choice("Map app", MapApp.entries, settings.mapApp, { it.label }) { v -> onChange { it.copy(mapApp = v) } }
+                Choice("The map box shows", MapPaneContent.entries, settings.mapPaneContent, { it.label }) { v ->
+                    onChange { it.copy(mapPaneContent = v) }
+                }
                 Choice("Open the map as", MapLaunchMode.entries, settings.mapLaunchMode, { it.label }) { v ->
                     onChange { it.copy(mapLaunchMode = v) }
                 }
