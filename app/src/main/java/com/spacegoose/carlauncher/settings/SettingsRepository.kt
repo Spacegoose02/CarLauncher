@@ -32,6 +32,7 @@ class SettingsRepository(context: Context) {
         val MAP_APP = stringPreferencesKey("map_app")
         val MAP_MODE = stringPreferencesKey("map_launch_mode")
         val MAP_PANE = stringPreferencesKey("map_pane_content")
+        val LIVE_SOURCE = stringPreferencesKey("live_map_source")
         val AUTO_MAP = booleanPreferencesKey("auto_launch_map")
         val REOPEN_MAP = booleanPreferencesKey("reopen_map_on_home")
         val FREEFORM_BROKEN = booleanPreferencesKey("freeform_known_broken")
@@ -51,6 +52,7 @@ class SettingsRepository(context: Context) {
             mapApp = enumOr(p[Keys.MAP_APP], d.mapApp),
             mapLaunchMode = enumOr(p[Keys.MAP_MODE], d.mapLaunchMode),
             mapPaneContent = enumOr(p[Keys.MAP_PANE], d.mapPaneContent),
+            liveMapSource = enumOr(p[Keys.LIVE_SOURCE], d.liveMapSource),
             autoLaunchMap = p[Keys.AUTO_MAP] ?: d.autoLaunchMap,
             reopenMapOnHome = p[Keys.REOPEN_MAP] ?: d.reopenMapOnHome,
             freeformKnownBroken = p[Keys.FREEFORM_BROKEN] ?: d.freeformKnownBroken,
@@ -69,6 +71,7 @@ class SettingsRepository(context: Context) {
         p[Keys.MAP_APP] = s.mapApp.name
         p[Keys.MAP_MODE] = s.mapLaunchMode.name
         p[Keys.MAP_PANE] = s.mapPaneContent.name
+        p[Keys.LIVE_SOURCE] = s.liveMapSource.name
         p[Keys.AUTO_MAP] = s.autoLaunchMap
         p[Keys.REOPEN_MAP] = s.reopenMapOnHome
         p[Keys.FREEFORM_BROKEN] = s.freeformKnownBroken

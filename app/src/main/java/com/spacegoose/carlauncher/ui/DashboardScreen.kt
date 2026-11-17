@@ -150,6 +150,7 @@ fun DashboardScreen(vm: DashboardViewModel) {
                         position = position,
                         locationAllowed = speedStatus != SourceStatus.NEEDS_PERMISSION,
                         mapApp = settings.mapApp,
+                        source = settings.liveMapSource,
                         onOpenMap = openMap,
                         modifier = paneModifier,
                     )

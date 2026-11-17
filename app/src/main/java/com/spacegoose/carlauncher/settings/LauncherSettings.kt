@@ -10,6 +10,12 @@ enum class MapPaneContent(val label: String) {
     BUTTON("Open button only"),
 }
 
+/** Which Waze web map the Live Map box loads. */
+enum class LiveMapSource(val label: String) {
+    EMBED("Waze embed"),
+    FULL_SITE("waze.com Live Map"),
+}
+
 enum class ThemeMode(val label: String) { DARK("Dark"), LIGHT("Light"), SYSTEM("Follow system") }
 
 enum class AccentColor(val label: String, val argb: Long) {
@@ -32,6 +38,7 @@ data class LauncherSettings(
     val mapApp: MapApp = MapApp.WAZE,
     val mapLaunchMode: MapLaunchMode = MapLaunchMode.AUTO,
     val mapPaneContent: MapPaneContent = MapPaneContent.LIVE_MAP,
+    val liveMapSource: LiveMapSource = LiveMapSource.EMBED,
     val autoLaunchMap: Boolean = false,
     /** Pressing Home puts a floating map back in its box. */
     val reopenMapOnHome: Boolean = true,
