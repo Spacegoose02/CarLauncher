@@ -43,6 +43,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
 import com.spacegoose.carlauncher.maps.MapApp
 import com.spacegoose.carlauncher.settings.LiveMapSource
 import com.spacegoose.carlauncher.vehicle.GeoPoint
@@ -82,6 +84,24 @@ private fun WebView.loadLiveMap(url: String, source: LiveMapSource) {
     }
 }
 
+/**
+ * The Live Map asks for the browser's Storage Access API, which Chrome grants but an app's WebView refuses
+ * ("requestStorageAccess: Permission denied"), and the map then never draws. Cookies are already allowed for
+ * this WebView, so answer those calls with "granted". Runs in every frame before the page's own scripts.
+ */
+private const val STORAGE_ACCESS_SHIM = """
+(function(){
+  try {
+    var ok = function(){ return Promise.resolve(); };
+    var yes = function(){ return Promise.resolve(true); };
+    Object.defineProperty(Document.prototype, 'requestStorageAccess', {value: ok, configurable: true, writable: true});
+    Object.defineProperty(Document.prototype, 'hasStorageAccess', {value: yes, configurable: true, writable: true});
+    if ('requestStorageAccessFor' in Document.prototype)
+      Object.defineProperty(Document.prototype, 'requestStorageAccessFor', {value: ok, configurable: true, writable: true});
+  } catch (e) {}
+})();
+"""
+
 private val WAZE_HOSTS = setOf("embed.waze.com", "www.waze.com", "waze.com")
 
 /** Make the WebView look like Chrome: Google's bot checks (reCAPTCHA) on the Live Map score WebViews low. */
@@ -101,14 +121,25 @@ private fun configure(web: WebView, onDiagnostic: (String) -> Unit) {
         mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
         userAgentString = userAgentString.replace("; wv", "").replace(Regex("Version/\\S+ "), "")
     }
+    if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+        WebViewCompat.addDocumentStartJavaScript(web, STORAGE_ACCESS_SHIM, setOf("*"))
+    } else {
+        onDiagnostic("This web view is too old for the storage fix. Updating Android System WebView may help.")
+    }
     CookieManager.getInstance().apply {
         setAcceptCookie(true)
         setAcceptThirdPartyCookies(web, true)
     }
+    val errors = ArrayDeque<String>()
     web.webChromeClient = object : WebChromeClient() {
         override fun onConsoleMessage(message: ConsoleMessage): Boolean {
             if (message.messageLevel() == ConsoleMessage.MessageLevel.ERROR) {
-                onDiagnostic("Error: " + message.message().take(140))
+                val text = message.message().take(100)
+                if (text !in errors) {
+                    errors.addLast(text)
+                    while (errors.size > 3) errors.removeFirst()
+                    onDiagnostic(errors.joinToString("\n") { "Error: $it" })
+                }
             }
             return false
         }
@@ -211,7 +242,7 @@ fun LiveMapPane(
                     it,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 3,
+                    maxLines = 6,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(8.dp)
