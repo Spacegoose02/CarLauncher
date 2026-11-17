@@ -12,6 +12,7 @@ enum class MapPaneContent(val label: String) {
 
 /** Which Waze web map the Live Map box loads. */
 enum class LiveMapSource(val label: String) {
+    IFRAME_PAGE("Waze embed in a page"),
     EMBED("Waze embed"),
     FULL_SITE("waze.com Live Map"),
 }
@@ -38,7 +39,7 @@ data class LauncherSettings(
     val mapApp: MapApp = MapApp.WAZE,
     val mapLaunchMode: MapLaunchMode = MapLaunchMode.AUTO,
     val mapPaneContent: MapPaneContent = MapPaneContent.LIVE_MAP,
-    val liveMapSource: LiveMapSource = LiveMapSource.EMBED,
+    val liveMapSource: LiveMapSource = LiveMapSource.IFRAME_PAGE,
     val autoLaunchMap: Boolean = false,
     /** Pressing Home puts a floating map back in its box. */
     val reopenMapOnHome: Boolean = true,

@@ -57,7 +57,7 @@ private const val MIN_RELOAD_MS = 20_000L
  * site, which locates you itself through the WebView's geolocation.
  */
 private fun liveMapUrl(p: GeoPoint, source: LiveMapSource) = when (source) {
-    LiveMapSource.EMBED ->
+    LiveMapSource.IFRAME_PAGE, LiveMapSource.EMBED ->
         String.format(Locale.US, "https://embed.waze.com/iframe?zoom=%d&lat=%.5f&lon=%.5f&pin=1", ZOOM, p.lat, p.lon)
     LiveMapSource.FULL_SITE -> "https://www.waze.com/live-map"
 }
@@ -65,6 +65,22 @@ private fun liveMapUrl(p: GeoPoint, source: LiveMapSource) = when (source) {
 private const val WEBGL_CHECK =
     "(function(){var c=document.createElement('canvas');" +
         "return (c.getContext('webgl2')||c.getContext('webgl'))?'yes':'no';})()"
+
+// The same approach as a plain web page that embeds the Live Map: our own page with the embed in an
+// iframe, served as if from waze.com, instead of opening the embed address directly.
+private fun iframePage(embedUrl: String) = """
+    <!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>html,body{margin:0;padding:0;height:100%;background:#000}iframe{width:100%;height:100%;border:0;display:block}</style>
+    </head><body><iframe src="$embedUrl" allow="geolocation" allowfullscreen></iframe></body></html>
+""".trimIndent()
+
+private fun WebView.loadLiveMap(url: String, source: LiveMapSource) {
+    if (source == LiveMapSource.IFRAME_PAGE) {
+        loadDataWithBaseURL("https://www.waze.com/", iframePage(url), "text/html", "utf-8", null)
+    } else {
+        loadUrl(url)
+    }
+}
 
 private val WAZE_HOSTS = setOf("embed.waze.com", "www.waze.com", "waze.com")
 
@@ -176,14 +192,14 @@ fun LiveMapPane(
                                     return true
                                 }
                             }
-                            tag = url
-                            loadUrl(url)
+                            tag = source.name + url
+                            loadLiveMap(url, source)
                         }
                     },
                     update = { view ->
-                        if (view.tag != url) {
-                            view.tag = url
-                            view.loadUrl(url)
+                        if (view.tag != source.name + url) {
+                            view.tag = source.name + url
+                            view.loadLiveMap(url, source)
                         }
                     },
                     onRelease = { it.destroy() },
