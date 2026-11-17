@@ -54,7 +54,7 @@ fun DashboardScreen(vm: DashboardViewModel) {
     val speedStatus by vm.speedStatus.collectAsStateWithLifecycle()
 
     // Wide window: widgets + map pane. Narrow (we're one half of split-screen): widgets only, Waze has the rest.
-    val wide = LocalConfiguration.current.screenWidthDp >= 720
+    val wide = LocalConfiguration.current.screenWidthDp >= 600
 
     var pendingWidgetId by rememberSaveable { mutableIntStateOf(LauncherSettings.NO_WIDGET) }
     val bindWidget = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
