@@ -40,6 +40,7 @@ class MediaRepository(context: Context) {
     private val handler = Handler(Looper.getMainLooper())
     private val sessionManager = appContext.getSystemService(MediaSessionManager::class.java)
     private val listenerComponent = ComponentName(appContext, MediaNotificationListener::class.java)
+    private val artLoader = ArtLoader(appContext)
 
     private val _nowPlaying = MutableStateFlow<NowPlaying?>(null)
     val nowPlaying: StateFlow<NowPlaying?> = _nowPlaying.asStateFlow()
@@ -212,9 +213,7 @@ class MediaRepository(context: Context) {
             ?: m.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE)
             ?: m.getString(MediaMetadataCompat.METADATA_KEY_ALBUM_ARTIST)
             ?: ""
-        val art = m.getBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART)
-            ?: m.getBitmap(MediaMetadataCompat.METADATA_KEY_ART)
-            ?: m.getBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON)
+        val art = artOf(m)
         val state = c.playbackState?.state
         return NowPlaying(
             title = title,
@@ -225,6 +224,29 @@ class MediaRepository(context: Context) {
             packageName = c.packageName,
             appLabel = appLabel(c.packageName),
         )
+    }
+
+    /**
+     * Players hand over artwork in different ways: a picture in one of three keys, or a link
+     * (content://, http…) in one of three others. Pictures win; links are loaded in the background
+     * and the card updates when one arrives.
+     */
+    private fun artOf(m: MediaMetadataCompat): Bitmap? {
+        val description = m.description
+        val picture = m.getBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART)
+            ?: m.getBitmap(MediaMetadataCompat.METADATA_KEY_ART)
+            ?: m.getBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON)
+            ?: description?.iconBitmap
+        if (picture != null) return picture
+        val uris = ArtSources.uris(
+            m.getString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI),
+            m.getString(MediaMetadataCompat.METADATA_KEY_ART_URI),
+            m.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI),
+            description?.iconUri?.toString(),
+        )
+        uris.firstNotNullOfOrNull { artLoader.cached(it) }?.let { return it }
+        if (uris.isNotEmpty()) artLoader.load(uris) { recompute() }
+        return null
     }
 
     private fun appLabel(pkg: String): String = try {
