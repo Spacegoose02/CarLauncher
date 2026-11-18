@@ -31,9 +31,20 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import com.spacegoose.carlauncher.config.ServerConfig
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -55,6 +66,11 @@ import com.spacegoose.carlauncher.vehicle.SpeedUnit
 fun SettingsPanel(
     settings: LauncherSettings,
     onChange: ((LauncherSettings) -> LauncherSettings) -> Unit,
+    serverConfig: ServerConfig,
+    configStatus: String?,
+    configSyncing: Boolean,
+    onSetConfigServer: (String) -> Unit,
+    onSyncConfig: () -> Unit,
     wavelengthInstalled: Boolean,
     wavelengthWidgetAvailable: Boolean,
     onAddWavelengthWidget: () -> Unit,
@@ -74,9 +90,12 @@ fun SettingsPanel(
             }
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 Section("Layout")
-                Choice("Screen layout", DashboardLayout.BuiltIn, DashboardLayout.byId(settings.layoutId), { it.name }) { v ->
-                    onChange { it.copy(layoutId = v.id) }
-                }
+                Choice(
+                    "Screen layout",
+                    DashboardLayout.available(serverConfig.layouts),
+                    DashboardLayout.resolve(settings.layoutId, serverConfig.layouts),
+                    { it.name },
+                ) { v -> onChange { it.copy(layoutId = v.id) } }
                 Section("Map")
                 Choice("Map app", MapApp.entries, settings.mapApp, { it.label }) { v -> onChange { it.copy(mapApp = v) } }
                 Choice("The map box shows", MapPaneContent.entries, settings.mapPaneContent, { it.label }) { v ->
@@ -135,11 +154,23 @@ fun SettingsPanel(
                 Choice("Units", SpeedUnit.entries, settings.speedUnit, { it.label }) { v -> onChange { it.copy(speedUnit = v) } }
 
                 Section("Look")
-                Choice("Theme", ThemeMode.entries, settings.themeMode, { it.label }) { v -> onChange { it.copy(themeMode = v) } }
-                AccentPicker(settings.accent) { v -> onChange { it.copy(accent = v) } }
+                val serverTheme = settings.themeId.takeIf { it.isNotEmpty() }?.let(serverConfig::theme)
+                if (serverConfig.themes.isNotEmpty()) {
+                    val options = listOf<String?>(null) + serverConfig.themes.map { it.id }
+                    Choice("Colours", options, serverTheme?.id, { id -> id?.let { serverConfig.theme(it)?.name } ?: "Built-in" }) { v ->
+                        onChange { it.copy(themeId = v ?: "") }
+                    }
+                }
+                if (serverTheme == null) {
+                    Choice("Theme", ThemeMode.entries, settings.themeMode, { it.label }) { v -> onChange { it.copy(themeMode = v) } }
+                    AccentPicker(settings.accent) { v -> onChange { it.copy(accent = v) } }
+                }
                 Toggle("Full screen (hide status bar, navigation bar and taskbar)", settings.hideSystemBars) { v ->
                     onChange { it.copy(hideSystemBars = v) }
                 }
+
+                Section("Config server")
+                ConfigServer(settings.configServerUrl, configStatus, configSyncing, onSetConfigServer, onSyncConfig)
 
                 Section("Launcher")
                 Action("Choose default home app") { open(Settings.ACTION_HOME_SETTINGS) }
@@ -147,6 +178,41 @@ fun SettingsPanel(
             }
         }
     }
+}
+
+@Composable
+private fun ConfigServer(
+    savedUrl: String,
+    status: String?,
+    syncing: Boolean,
+    onSave: (String) -> Unit,
+    onSync: () -> Unit,
+) {
+    var text by remember(savedUrl) { mutableStateOf(savedUrl) }
+    val focus = LocalFocusManager.current
+    val save = {
+        focus.clearFocus()
+        onSave(text)
+    }
+    Hint("Layouts and themes made on your own config server (the Docker app in the repo's server folder).")
+    OutlinedTextField(
+        value = text,
+        onValueChange = { text = it },
+        label = { Text("Server address, e.g. 192.168.1.20:8080") },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { save() }),
+        textStyle = MaterialTheme.typography.bodyLarge,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (text.trim() != savedUrl) {
+            Action(if (text.isBlank()) "Stop using a server" else "Save and sync") { save() }
+        } else if (savedUrl.isNotEmpty()) {
+            Action(if (syncing) "Syncing..." else "Sync now") { if (!syncing) onSync() }
+        }
+    }
+    status?.let { Hint(it) }
 }
 
 @Composable

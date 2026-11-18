@@ -53,6 +53,10 @@ data class LauncherSettings(
     val speedUnit: SpeedUnit = SpeedUnit.MPH,
     val themeMode: ThemeMode = ThemeMode.DARK,
     val accent: AccentColor = AccentColor.SKY,
+    /** A theme from the config server, by id; empty uses [themeMode] and [accent]. */
+    val themeId: String = "",
+    /** The self-hosted config server (layouts and themes), e.g. "http://192.168.1.20:8080"; empty when none. */
+    val configServerUrl: String = "",
     val hideSystemBars: Boolean = true,
     val mediaSource: MediaSourcePreference = MediaSourcePreference.WAVELENGTH_FIRST,
     /** The hosted Wavelength "Now playing" widget, or -1 when none is added. */

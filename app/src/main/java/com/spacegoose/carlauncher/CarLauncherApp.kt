@@ -3,6 +3,7 @@ package com.spacegoose.carlauncher
 import android.app.Application
 import android.content.Context
 import com.spacegoose.carlauncher.apps.AppRepository
+import com.spacegoose.carlauncher.config.ConfigRepository
 import com.spacegoose.carlauncher.maps.MapLauncher
 import com.spacegoose.carlauncher.media.MediaRepository
 import com.spacegoose.carlauncher.media.WavelengthWidgetHost
@@ -31,4 +32,5 @@ class AppGraph(context: Context) {
     val vehicle: VehicleDataSource = GpsSpeedSource(context)
     val maps = MapLauncher()
     val wavelengthWidget = WavelengthWidgetHost(context)
+    val config = ConfigRepository(context)
 }

@@ -10,6 +10,7 @@ CarLauncherApp/AppGraph Hand-wired singletons.
 
 settings/   LauncherSettings (one data class) + SettingsRepository (DataStore)
 layout/     DashboardLayout: which widgets go in which row
+config/     ServerConfig (pure: parse the config server's JSON), ConfigRepository (fetch + cache)
 maps/       MapLaunchPlanner (pure: which strategy), MapLauncher (does it), SplitScreenAccessibilityService
 media/      MediaRepository (Wavelength via MediaBrowserCompat + other apps via MediaSessionManager),
             chooseMediaSource (pure), WavelengthWidgetHost (AppWidgetHost), MediaNotificationListener
@@ -46,6 +47,12 @@ Wavelength also has a `NowPlayingWidget` app widget. `WavelengthWidgetHost` host
   so a layout editor, shared layout files, or a config server (for example a small Docker service that
   builds layouts and themes) only need to hand the launcher JSON. Built-in layouts: map right, map left,
   no map. `DashboardScreen` renders whatever layout it is given.
+- **Config server**: `server/` is that Docker service (Node, no dependencies, web editor). The launcher's
+  `ConfigRepository` fetches `/api/config`, keeps the last good copy in `files/server_config.json`, and
+  `ServerConfig.parseServerResponse` skips any layout or theme it can't read (for example a module added to
+  the server before the app). A server layout with a built-in's id replaces it. Server themes map onto the
+  Material colour scheme in `CarLauncherTheme`. Adding a module means a new `WidgetType` here and in
+  `WIDGET_TYPES` in `server/server.js`.
 - **Day/night themes**: add `ThemeMode.AUTO_SUN` and compute it from location and time in `CarLauncherTheme`.
 - **Auto-actions**: an `automation/` package with a foreground service or receivers for Bluetooth
   `ACTION_ACL_CONNECTED` and power connected. Its actions call `MapLauncher` and `MediaRepository`.

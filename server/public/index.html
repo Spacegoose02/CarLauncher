@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Car Launcher Config</title>
+<style>
+  :root {
+    --bg: #0f1218; --panel: #171c25; --panel2: #1f2632; --line: #2c3442; --text: #e8ecf2; --muted: #9aa4b4;
+    --accent: #4fc3f7; --danger: #ff6b6b; --ok: #7bd88f;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-size: 15px; }
+  header { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header .url { color: var(--muted); font-size: 13px; }
+  header .url code { color: var(--text); background: var(--panel2); padding: 2px 6px; border-radius: 4px; }
+  nav.tabs { display: flex; gap: 4px; margin-left: auto; }
+  nav.tabs button { background: none; border: 1px solid transparent; color: var(--muted); }
+  nav.tabs button.on { color: var(--text); border-color: var(--line); background: var(--panel); }
+  main { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 58px); }
+  aside { border-right: 1px solid var(--line); padding: 14px; }
+  aside ul { list-style: none; margin: 10px 0 0; padding: 0; }
+  aside li { padding: 9px 10px; border-radius: 6px; cursor: pointer; color: var(--muted); }
+  aside li:hover { background: var(--panel); }
+  aside li.on { background: var(--panel2); color: var(--text); }
+  aside li small { display: block; font-size: 11px; opacity: .7; }
+  section.editor { padding: 18px 22px; overflow: auto; }
+  button, .btn { font: inherit; background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 7px 12px; cursor: pointer; }
+  button:hover { border-color: var(--muted); }
+  button.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+  button.danger { color: var(--danger); }
+  button.small { padding: 3px 8px; font-size: 13px; }
+  input, select, textarea { font: inherit; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+  input[type=number] { width: 70px; }
+  input[type=color] { padding: 0; width: 44px; height: 32px; border: none; background: none; cursor: pointer; }
+  label { color: var(--muted); font-size: 13px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .toolbar { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
+  .toolbar .spacer { flex: 1; }
+  .msg { min-height: 20px; margin: 4px 0 12px; font-size: 14px; }
+  .msg.err { color: var(--danger); white-space: pre-line; }
+  .msg.ok { color: var(--ok); }
+  h2 { font-size: 15px; margin: 22px 0 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+
+  /* layout structure editor */
+  .cols { display: flex; gap: 12px; align-items: flex-start; overflow-x: auto; padding-bottom: 6px; }
+  .col { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; min-width: 230px; }
+  .col > .head { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+  .col > .head b { flex: 1; }
+  .rowbox { background: var(--panel2); border-radius: 6px; padding: 8px; margin-bottom: 8px; }
+  .rowbox .head { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; font-size: 13px; color: var(--muted); }
+  .rowbox .head span { flex: 1; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .chip { background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 3px 4px 3px 10px; font-size: 13px; display: inline-flex; gap: 4px; align-items: center; }
+  .chip button { border: none; background: none; padding: 0 5px; color: var(--muted); }
+  .chips select { font-size: 13px; padding: 3px 4px; }
+
+  /* preview */
+  .preview { aspect-ratio: 16 / 9; max-width: 760px; border-radius: 12px; padding: 8px; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--line); }
+  .pv-main { flex: 1; display: flex; gap: 8px; min-height: 0; }
+  .pv-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .pv-row { display: flex; gap: 8px; min-height: 0; }
+  .pv-w { flex: 1; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; min-width: 0; overflow: hidden; text-align: center; padding: 4px; }
+  .pv-w.MAP { background-image: repeating-linear-gradient(45deg, transparent 0 10px, rgba(127,127,127,.12) 10px 20px); }
+  .pv-dock { height: 13%; border-radius: 10px; display: flex; align-items: center; gap: 8px; padding: 0 10px; }
+  .pv-dock i { width: 26px; height: 26px; border-radius: 7px; display: block; }
+  .pv-big { font-size: 26px; font-weight: 300; }
+
+  /* theme editor */
+  .colors { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; max-width: 760px; }
+  .colors .c { display: flex; gap: 8px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+  .colors .c input[type=text] { width: 86px; font-family: ui-monospace, monospace; font-size: 13px; }
+  .colors .c label { flex: 1; color: var(--text); }
+
+  details { margin-top: 22px; max-width: 760px; }
+  details summary { cursor: pointer; color: var(--muted); }
+  textarea { width: 100%; min-height: 260px; font-family: ui-monospace, monospace; font-size: 13px; margin-top: 8px; }
+  .empty { color: var(--muted); padding: 40px 0; }
+  dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 10px; }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; } aside { border-right: none; border-bottom: 1px solid var(--line); } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Car Launcher config</h1>
+  <span class="url">In the launcher, set <b>Settings → Config server</b> to <code id="serverUrl"></code></span>
+  <nav class="tabs">
+    <button data-tab="layouts" class="on">Layouts</button>
+    <button data-tab="themes">Themes</button>
+  </nav>
+</header>
+<main>
+  <aside>
+    <button id="newBtn" class="primary">+ New</button>
+    <ul id="list"></ul>
+  </aside>
+  <section class="editor" id="editor"><div class="empty">Pick something on the left, or make a new one.</div></section>
+</main>
+
+<dialog id="tokenDlg">
+  <form method="dialog">
+    <p>This server needs its admin token to save changes.</p>
+    <input id="tokenInput" type="password" placeholder="Admin token" style="width:100%">
+    <div class="row" style="margin-top:12px;justify-content:flex-end"><button value="cancel">Cancel</button><button value="ok" class="primary">Save token</button></div>
+  </form>
+</dialog>
+
+<script>
+'use strict';
+const WIDGET_LABELS = { CLOCK: 'Clock', SPEEDOMETER: 'Speed', MEDIA: 'Media', WAVELENGTH_WIDGET: 'Wavelength widget', MAP: 'Map' };
+const COLOR_LABELS = { accent: 'Accent', onAccent: 'Text on accent', background: 'Background', surface: 'Cards', surfaceVariant: 'Raised cards', text: 'Text', textSecondary: 'Secondary text' };
+let meta = { widgetTypes: Object.keys(WIDGET_LABELS), themeColors: Object.keys(COLOR_LABELS) };
+let tab = 'layouts';
+let items = { layouts: [], themes: [] };
+let current = null;     // the object being edited
+let originalId = null;  // its id on the server, null when new
+let previewTheme = null;
+
+const $ = (s) => document.querySelector(s);
+const el = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (k === 'class') e.className = v;
+    else if (v !== undefined && v !== null && v !== false) e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false) e.append(k.nodeType ? k : document.createTextNode(k));
+  return e;
+};
+const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 64) || 'untitled';
+
+$('#serverUrl').textContent = location.origin;
+
+async function api(method, path, body) {
+  const headers = { 'Content-Type': 'application/json' };
+  const token = localStorage.getItem('adminToken');
+  if (token) headers.Authorization = 'Bearer ' + token;
+  const res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  if (res.status === 401) {
+    if (await askToken()) return api(method, path, body);
+    throw new Error('Not saved: the admin token is needed.');
+  }
+  const data = res.status === 204 ? null : await res.json();
+  if (!res.ok) throw new Error((data && data.errors ? data.errors.join('\n') : data && data.error) || res.statusText);
+  return data;
+}
+
+function askToken() {
+  return new Promise((resolve) => {
+    const d = $('#tokenDlg');
+    $('#tokenInput').value = '';
+    d.onclose = () => {
+      if (d.returnValue === 'ok' && $('#tokenInput').value) {
+        localStorage.setItem('adminToken', $('#tokenInput').value);
+        resolve(true);
+      } else resolve(false);
+    };
+    d.showModal();
+  });
+}
+
+async function load() {
+  try { meta = await api('GET', '/api/meta'); } catch {}
+  const [layouts, themes] = await Promise.all([api('GET', '/api/layouts'), api('GET', '/api/themes')]);
+  items = { layouts, themes };
+  previewTheme = previewTheme && themes.find((t) => t.id === previewTheme.id) || themes.find((t) => t.dark) || themes[0] || null;
+  renderList();
+}
+
+function renderList() {
+  const ul = $('#list');
+  ul.replaceChildren(...items[tab].map((it) => el('li', {
+    class: current && originalId === it.id ? 'on' : '',
+    onclick: () => edit(structuredClone(it), it.id),
+  }, it.name, el('small', {}, it.id))));
+}
+
+function edit(obj, id) {
+  current = obj;
+  originalId = id;
+  renderList();
+  renderEditor();
+}
+
+document.querySelectorAll('nav.tabs button').forEach((b) => b.addEventListener('click', () => {
+  tab = b.dataset.tab;
+  document.querySelectorAll('nav.tabs button').forEach((x) => x.classList.toggle('on', x === b));
+  current = null; originalId = null;
+  renderList();
+  $('#editor').replaceChildren(el('div', { class: 'empty' }, 'Pick something on the left, or make a new one.'));
+}));
+
+$('#newBtn').addEventListener('click', () => {
+  if (tab === 'layouts') {
+    edit({ id: '', name: 'New layout', columns: [
+      { weight: 0.42, rows: [{ weight: 1, widgets: ['CLOCK', 'SPEEDOMETER'] }, { weight: 1.4, widgets: ['MEDIA'] }] },
+      { weight: 0.58, rows: [{ weight: 1, widgets: ['MAP'] }] },
+    ] }, null);
+  } else {
+    const base = previewTheme || { dark: true, colors: { accent: '#4FC3F7', onAccent: '#000000', background: '#0B0E14', surface: '#151A23', surfaceVariant: '#1F2632', text: '#ECEFF4', textSecondary: '#A9B1C0' } };
+    edit({ id: '', name: 'New theme', dark: base.dark, colors: { ...base.colors } }, null);
+  }
+});
+
+// ---- shared editor chrome --------------------------------------------------------------------------
+
+function renderEditor() {
+  const root = $('#editor');
+  if (!current) return;
+  const msg = el('div', { class: 'msg', id: 'msg' });
+  const name = el('input', { value: current.name, style: 'width:240px', oninput: (e) => {
+    current.name = e.target.value;
+    if (!originalId && !idTouched) { current.id = slug(current.name); idInput.value = current.id; }
+    syncJson();
+  } });
+  let idTouched = !!originalId;
+  const idInput = el('input', { value: current.id || slug(current.name), style: 'width:180px', disabled: !!originalId, oninput: (e) => { idTouched = true; current.id = e.target.value; syncJson(); } });
+  if (!current.id) current.id = idInput.value;
+
+  const toolbar = el('div', { class: 'toolbar' },
+    el('div', { class: 'field' }, el('label', {}, 'Name'), name),
+    el('div', { class: 'field' }, el('label', {}, 'ID (fixed once saved)'), idInput),
+    el('div', { class: 'spacer' }),
+    originalId && el('button', { onclick: duplicate }, 'Duplicate'),
+    originalId && el('button', { class: 'danger', onclick: remove }, 'Delete'),
+    el('button', { class: 'primary', onclick: save }, 'Save'),
+  );
+
+  const body = el('div', { id: 'body' });
+  const json = el('textarea', { id: 'json', spellcheck: 'false', oninput: () => {
+    try {
+      const parsed = JSON.parse(json.value);
+      current = { ...parsed, id: current.id };
+      setMsg('');
+      renderBody();
+    } catch (e) { setMsg('JSON: ' + e.message, true); }
+  } });
+  root.replaceChildren(toolbar, msg, body, el('details', {}, el('summary', {}, 'Edit as JSON'), json));
+  renderBody();
+}
+
+function renderBody() {
+  const body = $('#body');
+  if (tab === 'layouts') renderLayout(body); else renderTheme(body);
+  syncJson(true);
+}
+
+function syncJson(skipFocused) {
+  const t = $('#json');
+  if (!t || (skipFocused && document.activeElement === t)) return;
+  t.value = JSON.stringify(current, null, 2);
+}
+
+function setMsg(text, err) {
+  const m = $('#msg');
+  if (!m) return;
+  m.textContent = text;
+  m.className = 'msg ' + (err ? 'err' : 'ok');
+}
+
+async function save() {
+  const id = current.id;
+  if (!originalId && items[tab].some((x) => x.id === id) && !confirm(`Something called "${id}" is already on the server. Replace it?`)) return;
+  try {
+    const saved = await api('PUT', `/api/${tab}/${encodeURIComponent(id)}`, current);
+    await load();
+    edit(structuredClone(saved), id);
+    setMsg('Saved. The launcher picks it up on its next sync.');
+  } catch (e) { setMsg(e.message, true); }
+}
+
+async function remove() {
+  if (!confirm(`Delete "${current.name}" from the server?`)) return;
+  try {
+    await api('DELETE', `/api/${tab}/${encodeURIComponent(originalId)}`);
+    current = null; originalId = null;
+    await load();
+    $('#editor').replaceChildren(el('div', { class: 'empty' }, 'Deleted.'));
+  } catch (e) { setMsg(e.message, true); }
+}
+
+function duplicate() {
+  const copy = structuredClone(current);
+  copy.name = current.name + ' copy';
+  copy.id = slug(copy.name);
+  edit(copy, null);
+}
+
+// ---- layouts ---------------------------------------------------------------------------------------
+
+function weightInput(obj, onChange) {
+  return el('input', { type: 'number', min: '0.05', step: '0.05', value: obj.weight ?? 1, title: 'Share of the space', oninput: (e) => {
+    const v = parseFloat(e.target.value);
+    if (v > 0) { obj.weight = v; onChange(); }
+  } });
+}
+
+function renderLayout(body) {
+  const L = current;
+  const refresh = () => { body.querySelector('.preview').replaceWith(preview(L)); syncJson(); };
+  const rerender = () => renderBody();
+
+  const cols = el('div', { class: 'cols' }, L.columns.map((c, ci) => el('div', { class: 'col' },
+    el('div', { class: 'head' },
+      el('b', {}, `Column ${ci + 1}`),
+      el('label', {}, 'width'), weightInput(c, refresh),
+      ci > 0 && el('button', { class: 'small', title: 'Move left', onclick: () => { L.columns.splice(ci - 1, 0, L.columns.splice(ci, 1)[0]); rerender(); } }, '←'),
+      ci < L.columns.length - 1 && el('button', { class: 'small', title: 'Move right', onclick: () => { L.columns.splice(ci + 1, 0, L.columns.splice(ci, 1)[0]); rerender(); } }, '→'),
+      L.columns.length > 1 && el('button', { class: 'small danger', title: 'Remove column', onclick: () => { L.columns.splice(ci, 1); rerender(); } }, '✕'),
+    ),
+    c.rows.map((r, ri) => el('div', { class: 'rowbox' },
+      el('div', { class: 'head' },
+        el('span', {}, `Row ${ri + 1}`),
+        el('label', {}, 'height'), weightInput(r, refresh),
+        ri > 0 && el('button', { class: 'small', title: 'Move up', onclick: () => { c.rows.splice(ri - 1, 0, c.rows.splice(ri, 1)[0]); rerender(); } }, '↑'),
+        c.rows.length > 1 && el('button', { class: 'small danger', title: 'Remove row', onclick: () => { c.rows.splice(ri, 1); rerender(); } }, '✕'),
+      ),
+      el('div', { class: 'chips' },
+        r.widgets.map((w, wi) => el('span', { class: 'chip' }, WIDGET_LABELS[w] || w,
+          el('button', { title: 'Remove', onclick: () => { r.widgets.splice(wi, 1); rerender(); } }, '✕'))),
+        r.widgets.length < 4 && el('select', { onchange: (e) => { if (e.target.value) { r.widgets.push(e.target.value); rerender(); } } },
+          el('option', { value: '' }, '+ module'),
+          meta.widgetTypes.map((t) => el('option', { value: t }, WIDGET_LABELS[t] || t))),
+      ),
+    )),
+    c.rows.length < 8 && el('button', { class: 'small', onclick: () => { c.rows.push({ weight: 1, widgets: ['CLOCK'] }); rerender(); } }, '+ Row'),
+  )),
+  L.columns.length < 6 && el('button', { onclick: () => { L.columns.push({ weight: 0.5, rows: [{ weight: 1, widgets: ['CLOCK'] }] }); rerender(); } }, '+ Column'));
+
+  const themePick = el('select', { onchange: (e) => { previewTheme = items.themes.find((t) => t.id === e.target.value) || null; refresh(); } },
+    items.themes.map((t) => el('option', { value: t.id, selected: previewTheme && previewTheme.id === t.id }, t.name)));
+
+  body.replaceChildren(
+    el('div', { class: 'row' }, el('h2', { style: 'margin-right:auto' }, 'Preview'), items.themes.length > 0 && el('label', {}, 'with theme'), items.themes.length > 0 && themePick),
+    preview(L),
+    el('h2', {}, 'Columns, rows and modules'),
+    el('p', { style: 'color:var(--muted);font-size:13px;margin-top:-4px' }, 'Width and height are shares: a column at 0.6 next to one at 0.4 gets 60% of the screen. The dock always sits along the bottom. When the launcher is half of split-screen it drops the map and stacks everything in one column.'),
+    cols,
+  );
+}
+
+function themeVars(t) {
+  const c = (t && t.colors) || { accent: '#4FC3F7', onAccent: '#000', background: '#0B0E14', surface: '#151A23', surfaceVariant: '#1F2632', text: '#ECEFF4', textSecondary: '#A9B1C0' };
+  return c;
+}
+
+function preview(L, theme) {
+  const c = themeVars(theme || previewTheme);
+  const widget = (w) => {
+    const box = el('div', { class: 'pv-w ' + w, style: `background:${c.surface};color:${c.textSecondary}` });
+    if (w === 'CLOCK') box.append(el('span', { class: 'pv-big', style: `color:${c.text}` }, '12:45'));
+    else if (w === 'SPEEDOMETER') box.append(el('span', { class: 'pv-big', style: `color:${c.accent}` }, '42'), el('span', { style: 'margin-left:4px' }, 'mph'));
+    else if (w === 'MEDIA') box.append(el('span', { style: `color:${c.text}` }, '♪ Now playing'));
+    else box.append(WIDGET_LABELS[w] || w);
+    return box;
+  };
+  return el('div', { class: 'preview', style: `background:${c.background}` },
+    el('div', { class: 'pv-main' }, L.columns.map((col) => el('div', { class: 'pv-col', style: `flex:${col.weight ?? 1}` },
+      col.rows.map((r) => el('div', { class: 'pv-row', style: `flex:${r.weight ?? 1}` }, r.widgets.map(widget)))))),
+    el('div', { class: 'pv-dock', style: `background:${c.surfaceVariant}` },
+      [c.accent, c.textSecondary, c.textSecondary, c.textSecondary, c.textSecondary].map((col, i) => el('i', { style: `background:${col};opacity:${i ? 0.5 : 1}` }))),
+  );
+}
+
+// ---- themes ----------------------------------------------------------------------------------------
+
+function renderTheme(body) {
+  const T = current;
+  T.colors = T.colors || {};
+  const sample = items.layouts.find((l) => l.id === 'map_right') || items.layouts[0] || { columns: [{ weight: 1, rows: [{ weight: 1, widgets: ['CLOCK', 'SPEEDOMETER'] }, { weight: 1, widgets: ['MEDIA'] }] }] };
+  const refresh = () => { body.querySelector('.preview').replaceWith(preview(sample, T)); syncJson(); };
+
+  const colorRow = (k) => {
+    const text = el('input', { type: 'text', value: T.colors[k] || '#000000', maxlength: 7 });
+    const pick = el('input', { type: 'color', value: T.colors[k] || '#000000' });
+    pick.addEventListener('input', () => { T.colors[k] = pick.value.toUpperCase(); text.value = T.colors[k]; refresh(); });
+    text.addEventListener('input', () => { if (/^#[0-9a-f]{6}$/i.test(text.value)) { T.colors[k] = text.value.toUpperCase(); pick.value = text.value; refresh(); } });
+    return el('div', { class: 'c' }, pick, el('label', {}, COLOR_LABELS[k] || k), text);
+  };
+
+  body.replaceChildren(
+    el('div', { class: 'row' },
+      el('label', {}, el('input', { type: 'checkbox', checked: T.dark !== false, onchange: (e) => { T.dark = e.target.checked; syncJson(); } }), ' Dark theme (sets the style of switches, dialogs and system bars)')),
+    el('h2', {}, 'Colours'),
+    el('div', { class: 'colors' }, meta.themeColors.map(colorRow)),
+    el('h2', {}, 'Preview'),
+    preview(sample, T),
+  );
+}
+
+load().catch((e) => { $('#editor').replaceChildren(el('div', { class: 'msg err' }, 'Could not reach the server: ' + e.message)); });
+</script>
+</body>
+</html>

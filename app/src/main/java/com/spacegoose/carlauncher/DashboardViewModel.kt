@@ -41,6 +41,11 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     val speedStatus = graph.vehicle.status
     val position = graph.vehicle.position
 
+    /** Layouts and themes from the config server (the cached copy until a sync finishes). */
+    val serverConfig = graph.config.config
+    val configStatus = graph.config.status
+    val configSyncing = graph.config.syncing
+
     val dockApps: StateFlow<List<AppEntry>> = combine(settings, apps) { s, list -> resolveDock(s, list) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
@@ -64,6 +69,10 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     init {
         viewModelScope.launch { settings.collect { graph.media.preference = it.mediaSource } }
         viewModelScope.launch { graph.apps.refresh() }
+        viewModelScope.launch {
+            val url = loadedSettings().configServerUrl
+            if (url.isNotBlank()) graph.config.sync(url)
+        }
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_PACKAGE_ADDED)
             addAction(Intent.ACTION_PACKAGE_REMOVED)
@@ -154,6 +163,25 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
                     "Turn on the split-screen helper in settings, or pick another mode."
             LaunchStrategy.FULLSCREEN -> Unit
         }
+    }
+
+    /** Saves the config server address and fetches its layouts and themes; a blank address forgets them. */
+    fun setConfigServer(url: String) {
+        val trimmed = url.trim()
+        viewModelScope.launch {
+            graph.settings.update { it.copy(configServerUrl = trimmed) }
+            if (trimmed.isEmpty()) {
+                graph.config.clear()
+                graph.settings.update { it.copy(themeId = "") }
+            } else {
+                graph.config.sync(trimmed)
+            }
+        }
+    }
+
+    fun syncConfig() {
+        val url = settings.value.configServerUrl
+        if (url.isNotBlank()) viewModelScope.launch { graph.config.sync(url) }
     }
 
     fun launchApp(context: Context, entry: AppEntry) {

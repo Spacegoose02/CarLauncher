@@ -1,0 +1,12 @@
+services:
+  carlauncher-config:
+    build: .
+    container_name: carlauncher-config
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Set a token to stop anyone else on your network from changing layouts. Leave empty for no password.
+      ADMIN_TOKEN: ""
+    volumes:
+      - ./data:/data

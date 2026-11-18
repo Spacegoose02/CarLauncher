@@ -1,0 +1,14 @@
+{
+  "id": "daylight",
+  "name": "Daylight",
+  "dark": false,
+  "colors": {
+    "accent": "#0277BD",
+    "onAccent": "#FFFFFF",
+    "background": "#EFF2F7",
+    "surface": "#FFFFFF",
+    "surfaceVariant": "#E2E7EF",
+    "text": "#12161D",
+    "textSecondary": "#4A5363"
+  }
+}

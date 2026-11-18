@@ -45,6 +45,12 @@ Third-party apps can't embed Waze or read its alerts, so the launcher shows Waze
 
 When the launcher is half of a split screen, it switches to a compact layout with the widgets only.
 
+## Config server (layouts and themes)
+
+The [`server/`](server) folder is a small Docker app with a web editor for making your own dashboard layouts
+and colour themes. Run it on a home server, then in the launcher go to **Settings → Config server**, enter its
+address, and tap **Save and sync**. See [server/README.md](server/README.md).
+
 ## Build it yourself
 
 You need JDK 17 and the Android SDK (Android Studio installs both).
@@ -65,7 +71,6 @@ Every push to `main` builds the APK on GitHub Actions (`.github/workflows/build.
 Planned, and the code is laid out for them (see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)):
 
 - OBD2 data (rpm, coolant, fuel) through a Bluetooth ELM327 adapter
-- A layout editor for choosing and arranging the widgets
 - Automatic day and night themes
 - Auto-actions when the car starts or Bluetooth connects (open Waze, resume Wavelength, ...)
 - Profile sync and backup
