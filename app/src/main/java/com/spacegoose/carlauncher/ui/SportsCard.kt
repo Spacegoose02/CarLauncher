@@ -63,8 +63,9 @@ fun SportsCard(state: SportsState, images: ImageCache, onRefresh: () -> Unit, mo
             val usable = maxHeight - if (footer) 24.dp else 0.dp
             val rowHeight = min(96.dp, maxOf(56.dp, usable / rows.size.coerceAtLeast(1) - RowGap))
             val fits = ((usable + RowGap) / (rowHeight + RowGap)).toInt().coerceIn(1, rows.size)
+            val cardWidth = maxWidth
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(RowGap)) {
-                rows.take(fits).forEach { ScoreRow(it, images, rowHeight, maxWidth) }
+                rows.take(fits).forEach { ScoreRow(it, images, rowHeight, cardWidth) }
                 if (footer) {
                     Text(
                         if (state.problem != null) "Not updated: tap to try again" else "Saved scores, updating...",
