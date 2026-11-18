@@ -259,7 +259,25 @@ function createServer() {
   });
 }
 
+/** Started as root (as in Docker): give the data folder to PUID:PGID and carry on as that user. */
+function dropPrivileges() {
+  if (typeof process.getuid !== 'function' || process.getuid() !== 0 || !process.env.PUID) return;
+  const uid = Number(process.env.PUID);
+  const gid = Number(process.env.PGID || process.env.PUID);
+  if (!Number.isInteger(uid) || !Number.isInteger(gid) || uid === 0) return;
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const chown = (p) => {
+    fs.chownSync(p, uid, gid);
+    if (fs.statSync(p).isDirectory()) for (const f of fs.readdirSync(p)) chown(path.join(p, f));
+  };
+  chown(DATA_DIR);
+  process.setgroups([gid]);
+  process.setgid(gid);
+  process.setuid(uid);
+}
+
 if (require.main === module) {
+  dropPrivileges();
   initData();
   createServer().listen(PORT, () => {
     console.log(`Car Launcher config server on port ${PORT}, data in ${DATA_DIR}${ADMIN_TOKEN ? ', editing needs the admin token' : ''}`);

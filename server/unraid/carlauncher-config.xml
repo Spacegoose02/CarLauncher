@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>carlauncher-config</Name>
+  <Repository>ghcr.io/spacegoose02/carlauncher-config:latest</Repository>
+  <Registry>https://github.com/Spacegoose02/CarLauncher/pkgs/container/carlauncher-config</Registry>
+  <Network>bridge</Network>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Spacegoose02/CarLauncher/issues</Support>
+  <Project>https://github.com/Spacegoose02/CarLauncher/tree/main/server</Project>
+  <Overview>Config server for Car Launcher. A web editor for making dashboard layouts and colour themes, which the launcher on your car tablet or head unit downloads. In the launcher, go to Settings, then Config server, and enter http://[your Unraid IP]:8080.</Overview>
+  <Category>Tools: HomeAutomation:</Category>
+  <WebUI>http://[IP]:[PORT:8080]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/Spacegoose02/CarLauncher/main/server/unraid/carlauncher-config.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/Spacegoose02/CarLauncher/main/server/unraid/icon.png</Icon>
+  <ExtraParams>--restart unless-stopped</ExtraParams>
+  <Config Name="Web UI port" Target="8080" Default="8080" Mode="tcp" Description="Port for the editor and for the launcher to sync from." Type="Port" Display="always" Required="true" Mask="false">8080</Config>
+  <Config Name="Data" Target="/data" Default="/mnt/user/appdata/carlauncher-config" Mode="rw" Description="Where layouts and themes are saved, one JSON file each." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/carlauncher-config</Config>
+  <Config Name="PUID" Target="PUID" Default="99" Mode="" Description="User the server runs as (Unraid: 99 = nobody)." Type="Variable" Display="advanced" Required="false" Mask="false">99</Config>
+  <Config Name="PGID" Target="PGID" Default="100" Mode="" Description="Group the server runs as (Unraid: 100 = users)." Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
+  <Config Name="Admin token" Target="ADMIN_TOKEN" Default="" Mode="" Description="Optional password for saving changes in the editor. Leave empty for none. The launcher never needs it." Type="Variable" Display="always" Required="false" Mask="true"></Config>
+</Container>
