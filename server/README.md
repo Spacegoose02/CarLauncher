@@ -24,6 +24,20 @@ docker run -d --name carlauncher-config --restart unless-stopped \
 
 Then open `http://<your server's address>:8080` in a browser.
 
+### Unraid
+
+1. Open the Unraid **Terminal** (the `>_` icon at the top right) and paste:
+
+   ```bash
+   wget -O /boot/config/plugins/dockerMan/templates-user/my-carlauncher-config.xml \
+     https://raw.githubusercontent.com/Spacegoose02/CarLauncher/main/server/unraid/carlauncher-config.xml
+   ```
+
+2. Go to **Docker → Add Container**, and pick **carlauncher-config** from the **Template** list.
+3. Leave the defaults (port 8080, data in `/mnt/user/appdata/carlauncher-config`), optionally set an
+   **Admin token**, and click **Apply**.
+4. Click the container's icon, then **WebUI**, to open the editor.
+
 On first start it fills itself with the launcher's three built-in layouts (map right, map left, no map)
 and three themes, to start from.
 
@@ -31,6 +45,7 @@ and three themes, to start from.
 |---|---|---|
 | `PORT` | `8080` | Port inside the container. |
 | `DATA_DIR` | `/data` | Where the JSON files live. Mount a volume here. |
+| `PUID` / `PGID` | `1000` / `1000` | User and group that own `/data` and run the server (Unraid: `99` / `100`). |
 | `ADMIN_TOKEN` | empty | When set, the editor asks for this token before saving or deleting. The launcher only reads, so it never needs it. |
 
 ## In the launcher
