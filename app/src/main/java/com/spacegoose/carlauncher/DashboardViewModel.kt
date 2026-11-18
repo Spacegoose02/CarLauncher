@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.lifecycle.Lifecycle
 import com.spacegoose.carlauncher.maps.LaunchStrategy
 import com.spacegoose.carlauncher.maps.MapLaunchMode
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import android.app.Application
 import android.content.BroadcastReceiver
@@ -69,10 +70,6 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     init {
         viewModelScope.launch { settings.collect { graph.media.preference = it.mediaSource } }
         viewModelScope.launch { graph.apps.refresh() }
-        viewModelScope.launch {
-            val url = loadedSettings().configServerUrl
-            if (url.isNotBlank()) graph.config.sync(url)
-        }
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_PACKAGE_ADDED)
             addAction(Intent.ACTION_PACKAGE_REMOVED)
@@ -89,13 +86,34 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
 
     suspend fun loadedSettings(): LauncherSettings = graph.settings.settings.first()
 
+    private var started = false
+    private var configWatch: Job? = null
+
+    /**
+     * While the dashboard is on screen, keep a request open to the config server so edits made in its web
+     * editor show up straight away. Stopped when the launcher is hidden; it catches up when it comes back.
+     */
+    private fun restartConfigWatch() {
+        configWatch?.cancel()
+        configWatch = null
+        if (!started) return
+        configWatch = viewModelScope.launch {
+            val url = loadedSettings().configServerUrl
+            if (url.isNotBlank()) graph.config.watch(url)
+        }
+    }
+
     fun onStart() {
+        started = true
+        restartConfigWatch()
         graph.media.start()
         graph.vehicle.start()
         graph.wavelengthWidget.startListening()
     }
 
     fun onStop() {
+        started = false
+        restartConfigWatch()
         graph.media.stop()
         graph.vehicle.stop()
         graph.wavelengthWidget.stopListening()
@@ -171,10 +189,12 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             graph.settings.update { it.copy(configServerUrl = trimmed) }
             if (trimmed.isEmpty()) {
+                configWatch?.cancel()
                 graph.config.clear()
                 graph.settings.update { it.copy(themeId = "") }
             } else {
                 graph.config.sync(trimmed)
+                restartConfigWatch()
             }
         }
     }

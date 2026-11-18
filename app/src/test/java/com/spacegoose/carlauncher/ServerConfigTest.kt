@@ -51,6 +51,13 @@ class ServerConfigTest {
         assertEquals(DashboardLayout.MapRight, DashboardLayout.resolve("gone", emptyList()))
     }
 
+    @Test fun readsTheRevisionForLiveUpdates() {
+        assertEquals("", ServerConfig.parseServerResponse(response).revision)
+        val withRev = ServerConfig.parseServerResponse("""{"revision":"0123456789abcdef","layouts":[],"themes":[]}""")
+        assertEquals("0123456789abcdef", withRev.revision)
+        assertEquals(withRev, ServerConfig.fromCache(withRev.toJson()))
+    }
+
     @Test fun normalizesServerAddresses() {
         assertEquals("http://192.168.1.20:8080", ServerConfig.normalizeUrl(" 192.168.1.20:8080/ "))
         assertEquals("https://cfg.example.org", ServerConfig.normalizeUrl("https://cfg.example.org"))
