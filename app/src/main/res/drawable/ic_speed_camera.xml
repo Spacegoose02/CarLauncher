@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A speed camera on the OpenStreetMap map: an amber disc with a camera. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="30dp" android:height="30dp"
+    android:viewportWidth="30" android:viewportHeight="30">
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M15,0a15,15 0,1 1,0 30a15,15 0,1 1,0 -30z" />
+    <path android:fillColor="#FFFFA000"
+        android:pathData="M15,2a13,13 0,1 1,0 26a13,13 0,1 1,0 -26z" />
+    <path android:fillColor="#FF212121"
+        android:pathData="M8,11h3l1.5,-2h5l1.5,2h3a1,1 0,0 1,1 1v8a1,1 0,0 1,-1 1h-14a1,1 0,0 1,-1 -1v-8a1,1 0,0 1,1 -1z" />
+    <path android:fillColor="#FFFFA000"
+        android:pathData="M15,12.5a3.5,3.5 0,1 1,0 7a3.5,3.5 0,1 1,0 -7z" />
+</vector>

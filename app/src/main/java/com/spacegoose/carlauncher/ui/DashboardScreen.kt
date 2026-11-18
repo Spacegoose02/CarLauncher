@@ -99,6 +99,7 @@ fun DashboardScreen(vm: DashboardViewModel) {
                 mapApp = settings.mapApp,
                 onOpenMap = openMap,
                 modifier = paneModifier,
+                speedUnit = settings.speedUnit,
             )
             MapPaneContent.LIVE_MAP -> LiveMapPane(
                 position = position,
