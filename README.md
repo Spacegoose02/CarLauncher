@@ -49,7 +49,8 @@ When the launcher is half of a split screen, it switches to a compact layout wit
 
 The [`server/`](server) folder is a small Docker app with a web editor for making your own dashboard layouts
 and colour themes. Run it on a home server, then in the launcher go to **Settings → Config server**, enter its
-address, and tap **Save and sync**. There is a template for Unraid too. See [server/README.md](server/README.md).
+address, and tap **Save and sync**. After that, changes you save show up in the car within a second or two. You can
+share layouts and themes as a short code or a file. There is a template for Unraid too. See [server/README.md](server/README.md).
 
 ## Build it yourself
 

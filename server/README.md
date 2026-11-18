@@ -51,18 +51,42 @@ and three themes, to start from.
 ## In the launcher
 
 **Settings → Config server**: type the server's address (for example `192.168.1.20:8080`) and tap
-**Save and sync**. Your layouts then appear under **Layout**, and themes under **Look → Colours**. The launcher
-syncs each time it starts and keeps the last copy, so it still works with no network in the car. Tap **Sync now**
-after you change something.
+**Save and sync**. Your layouts then appear under **Layout**, and themes under **Look → Colours**.
+
+Changes go to the car by themselves. While the dashboard is on screen, the launcher keeps one quiet request open
+to the server, and the server answers it the moment you save (or edit a file in `/data` by hand), so the car
+updates within a second or two. The editor's header shows when a car is connected. With no network the launcher
+keeps using its last copy and reconnects when it can. **Sync now** is still there if you want it.
 
 The tablet has to reach the server. On home Wi-Fi a local address works. To sync away from home, put
 the server behind something like Tailscale or a reverse proxy with HTTPS.
+
+## Sharing layouts and themes
+
+- **Share** (on any layout or theme) gives you a share code, a line of text starting with `CL1.`. Send it in a
+  message; the other person pastes it into **Import** on their own server. **Copy link** gives a link that
+  opens this editor with the import ready, and **Download file** saves it as JSON.
+- **Import** takes a share code, a JSON file, or a whole backup. If a name is already taken you choose to
+  keep both, replace yours, or keep yours. Things you already have are never duplicated.
+- **Export all** downloads every layout and theme as one file, as a backup or to move to another server.
+
+## Modules
+
+The editor lists the modules this server knows: `CLOCK`, `SPEEDOMETER`, `MEDIA`, `WAVELENGTH_WIDGET`, `MAP`
+(one per layout), `WEATHER` and `SPORTS`. A layout may also use a module name the server doesn't list yet
+(**+ module → Other…**), for a newer launcher; a launcher that doesn't have that module skips the layout.
+
+To add or relabel modules without rebuilding the image, put a `modules.json` in the data folder:
+
+```json
+[ { "type": "OBD_GAUGE", "label": "Engine gauges", "description": "RPM, coolant, fuel", "maxPerLayout": 2 } ]
+```
 
 ## Formats
 
 A **layout** is columns side by side, each a stack of rows, each row one to four modules. `weight` is a
 share of the space (a column at 0.6 next to one at 0.4 gets 60%). The dock always runs along the bottom.
-Modules: `CLOCK`, `SPEEDOMETER`, `MEDIA`, `WAVELENGTH_WIDGET`, `MAP` (one map at most).
+See **Modules** above for the module names.
 
 ```json
 {
@@ -99,14 +123,19 @@ A **theme** is a set of colours:
 
 | | |
 |---|---|
-| `GET /api/config` | Everything the launcher needs: `{ formatVersion, layouts, themes }` |
+| `GET /api/config` | Everything the launcher needs: `{ formatVersion, revision, layouts, themes }`, with the revision as the `ETag` |
+| `GET /api/config?wait=50` + `If-None-Match: "<revision>"` | Waits up to 50 s (60 at most) for a change: `200` with the new config, or `304` if nothing changed. `?since=<revision>` works too |
+| `GET /api/status` | `{ revision, listening, lastSync }`: how many launchers are waiting for changes, and when one last synced |
+| `GET /api/export[?layouts=a,b&themes=c][&download]` | A bundle file of everything, or of the ones named |
+| `GET /api/share?layouts=a&themes=b` | `{ code }`: a `CL1.` share code for the ones named |
+| `POST /api/import[?conflict=copy\|replace\|skip]` | Body: a share code, a bundle, one layout or theme, or a list. Returns what was added, replaced, unchanged, skipped or failed |
 | `GET /api/layouts`, `GET /api/layouts/{id}` | List or read layouts |
 | `PUT /api/layouts/{id}` | Create or replace (validated; errors come back as a list) |
 | `DELETE /api/layouts/{id}` | Delete |
 | `…/api/themes…` | The same for themes |
-| `GET /api/meta` | Module names and colour names, for the editor |
+| `GET /api/meta` | The module catalog and colour names, for the editor |
 
-`PUT` and `DELETE` need `Authorization: Bearer <ADMIN_TOKEN>` when a token is set.
+`PUT`, `DELETE` and `POST /api/import` need `Authorization: Bearer <ADMIN_TOKEN>` when a token is set.
 
 ## Develop
 
