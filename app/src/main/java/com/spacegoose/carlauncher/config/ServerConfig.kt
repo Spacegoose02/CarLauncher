@@ -67,14 +67,14 @@ data class ServerConfig(
          * Returns null when it can't be a URL.
          */
         fun normalizeUrl(input: String): String? {
-            var s = input.trim().trimEnd('/')
+            val s = input.trim()
             if (s.isEmpty()) return null
-            if (!s.contains("://")) s = "http://$s"
-            val scheme = s.substringBefore("://").lowercase()
+            val scheme = if (s.contains("://")) s.substringBefore("://").lowercase() else "http"
             if (scheme != "http" && scheme != "https") return null
-            val host = s.substringAfter("://").substringBefore('/').substringBefore(':')
-            if (host.isBlank() || host.any { it.isWhitespace() }) return null
-            return s
+            val rest = (if (s.contains("://")) s.substringAfter("://") else s).trimEnd('/')
+            val host = rest.substringBefore('/').substringBefore(':')
+            if (host.isBlank() || rest.any { it.isWhitespace() }) return null
+            return "$scheme://$rest"
         }
 
         /** Parses "#RRGGBB" (or "#AARRGGBB") to an ARGB long, or null. */
