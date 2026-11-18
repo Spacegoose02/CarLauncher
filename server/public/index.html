@@ -165,7 +165,7 @@
 
 <script>
 'use strict';
-const WIDGET_LABELS = { CLOCK: 'Clock', SPEEDOMETER: 'Speed', MEDIA: 'Media', WAVELENGTH_WIDGET: 'Wavelength widget', MAP: 'Map' };
+const WIDGET_LABELS = { CLOCK: 'Clock', SPEEDOMETER: 'Speed', MEDIA: 'Media', WAVELENGTH_WIDGET: 'Wavelength widget', MAP: 'Map', PHONE: 'Phone', CAR_DATA: 'Car data (OBD-II)' };
 const moduleLabel = (t) => (meta.modules || []).find((m) => m.type === t)?.label || WIDGET_LABELS[t] || t;
 const knownModule = (t) => (meta.modules ? meta.modules.some((m) => m.type === t) : t in WIDGET_LABELS);
 const COLOR_LABELS = { accent: 'Accent', onAccent: 'Text on accent', background: 'Background', surface: 'Cards', surfaceVariant: 'Raised cards', text: 'Text', textSecondary: 'Secondary text' };

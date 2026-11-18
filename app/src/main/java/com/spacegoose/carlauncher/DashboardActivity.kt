@@ -17,7 +17,11 @@ import com.spacegoose.carlauncher.ui.DashboardScreen
 import com.spacegoose.carlauncher.ui.theme.CarLauncherTheme
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.delay
+import android.os.SystemClock
+import androidx.compose.runtime.CompositionLocalProvider
+import com.spacegoose.carlauncher.automation.CarStart
+import com.spacegoose.carlauncher.ui.CarSizes
+import com.spacegoose.carlauncher.ui.LocalCarSizes
 import kotlinx.coroutines.launch
 
 class DashboardActivity : ComponentActivity() {
@@ -34,9 +38,13 @@ class DashboardActivity : ComponentActivity() {
         setContent {
             val settings by vm.settings.collectAsStateWithLifecycle()
             val serverConfig by vm.serverConfig.collectAsStateWithLifecycle()
+            val night by vm.isNight.collectAsStateWithLifecycle()
+            val driving by vm.drivingMode.collectAsStateWithLifecycle()
             val serverTheme = settings.themeId.takeIf { it.isNotEmpty() }?.let(serverConfig::theme)
-            CarLauncherTheme(settings, serverTheme) {
-                DashboardScreen(vm)
+            CarLauncherTheme(settings, serverTheme, night) {
+                CompositionLocalProvider(LocalCarSizes provides if (driving) CarSizes.Driving else CarSizes.Normal) {
+                    DashboardScreen(vm)
+                }
             }
         }
 
@@ -46,20 +54,25 @@ class DashboardActivity : ComponentActivity() {
             }
         }
 
+        // A fresh start (boot, or the car starting) runs the start actions: open the map, resume music.
         if (savedInstanceState == null) {
-            lifecycleScope.launch {
-                val settings = vm.loadedSettings()
-                if (settings.autoLaunchMap) {
-                    delay(AUTO_LAUNCH_DELAY_MS)
-                    vm.openMap(this@DashboardActivity)
-                }
-            }
+            val carStart = intent.getBooleanExtra(CarStart.EXTRA_CAR_START, false) ||
+                SystemClock.elapsedRealtime() < JUST_BOOTED_MS
+            vm.runStartActions(this, carStart)
         }
     }
 
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
-        if (intent.getBooleanExtra(EXTRA_FROM_HOME, false)) vm.onHomePressed(this)
+        setIntent(intent)
+        when {
+            intent.getBooleanExtra(CarStart.EXTRA_CAR_START, false) -> {
+                vm.drawerOpen = false
+                vm.settingsOpen = false
+                vm.runStartActions(this, carStart = true)
+            }
+            intent.getBooleanExtra(EXTRA_FROM_HOME, false) -> vm.onHomePressed(this)
+        }
     }
 
     override fun onStart() {
@@ -90,6 +103,7 @@ class DashboardActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_FROM_HOME = "from_home"
-        private const val AUTO_LAUNCH_DELAY_MS = 1200L
+        /** A dashboard created this soon after boot counts as the car starting. */
+        private const val JUST_BOOTED_MS = 5 * 60_000L
     }
 }

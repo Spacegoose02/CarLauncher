@@ -14,7 +14,11 @@ config/     ServerConfig (pure: parse the config server's JSON), ConfigRepositor
 maps/       MapLaunchPlanner (pure: which strategy), MapLauncher (does it), SplitScreenAccessibilityService
 media/      MediaRepository (Wavelength via MediaBrowserCompat + other apps via MediaSessionManager),
             chooseMediaSource (pure), WavelengthWidgetHost (AppWidgetHost), MediaNotificationListener
-vehicle/    VehicleDataSource interface, GpsSpeedSource
+vehicle/    VehicleDataSource interface, GpsSpeedSource, DrivingState (pure: "is the car moving" for bigger buttons)
+vehicle/obd ObdProtocol (pure: ELM327 commands and answers), Elm327Source (Bluetooth SPP connection and polling)
+daynight/   SunPosition (pure: sun elevation, so ThemeMode.AUTO_SUN goes dark at sunset)
+phone/      ContactsRepository: favourite/frequent contacts, calling, finding the dialer or BT phone app
+automation/ CarStart (boot, screen-on after a long sleep, power back: bring the dashboard up), CarStartRules (pure)
 apps/       AppRepository: installed apps, icons, launching
 integrations/  Self-hosted services: Http (GET + Bearer key), ImageCache (team logos),
             weather/ (Weather Scout GET /api/connect/widget), sports/ (Stat Scraps GET /api/account/teams with
@@ -43,8 +47,14 @@ Wavelength also has a `NowPlayingWidget` app widget. `WavelengthWidgetHost` host
 
 ## Where planned features plug in
 
-- **OBD2**: implement `VehicleDataSource` (for example `Elm327Source`) and add fields such as rpm
-  and coolant to the reading. Swap or combine it in `AppGraph`. Add `WidgetType` entries for new gauges.
+- **Driving mode**: `LocalCarSizes` (in `ui/Common.kt`) holds the touch target, dock height and similar sizes.
+  `DashboardActivity` provides `CarSizes.Driving` while `DashboardViewModel.drivingMode` is on. New cards should
+  size their buttons from `TouchTarget` or `LocalCarSizes` so they grow too.
+- **OBD2**: `Elm327Source` connects only between the dashboard's onStart and onStop. The `CAR_DATA` module is
+  hidden until an adapter is picked. More PIDs: add an `ObdPid` and a field on `ObdReading`.
+- **Car start**: head units mostly sleep instead of powering off, so `CarStart` watches screen-on (after 2+ minutes
+  off), boot, and power coming back, and starts `DashboardActivity` with `EXTRA_CAR_START`. Android 10+ blocks
+  activity starts from the background unless "display over other apps" is granted; settings offer that.
 - **Layouts are modular**: a `DashboardLayout` is columns of rows of `WidgetType` modules (the map is
   just the `MAP` module), with the dock along the bottom. It serialises to JSON (`toJson`/`fromJson`),
   so a layout editor, shared layout files, or a config server (for example a small Docker service that
@@ -60,8 +70,5 @@ Wavelength also has a `NowPlayingWidget` app widget. `WavelengthWidgetHost` host
   dashboard is on screen and the chosen layout shows the module (weather every 10 minutes at the car's GPS
   position, scores every 45 seconds while a game is live and every 5 minutes otherwise). The last reading is
   cached in `files/`, so the cards aren't empty in a car with no signal.
-- **Day/night themes**: add `ThemeMode.AUTO_SUN` and compute it from location and time in `CarLauncherTheme`.
-- **Auto-actions**: an `automation/` package with a foreground service or receivers for Bluetooth
-  `ACTION_ACL_CONNECTED` and power connected. Its actions call `MapLauncher` and `MediaRepository`.
 - **Profile sync**: everything user-facing is in the one `launcher_settings` DataStore, so export and
   import cover the whole profile.

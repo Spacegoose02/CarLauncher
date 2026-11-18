@@ -47,6 +47,11 @@ class SettingsRepository(context: Context) {
         val LAYOUT = stringPreferencesKey("layout_id")
         val THEME_ID = stringPreferencesKey("theme_id")
         val CONFIG_URL = stringPreferencesKey("config_server_url")
+        val DRIVING_MODE = stringPreferencesKey("driving_mode")
+        val CAR_START_LAUNCH = booleanPreferencesKey("launch_on_car_start")
+        val CAR_START_MUSIC = booleanPreferencesKey("resume_music_on_car_start")
+        val OBD_ADDRESS = stringPreferencesKey("obd_adapter_address")
+        val OBD_NAME = stringPreferencesKey("obd_adapter_name")
         val WEATHER_URL = stringPreferencesKey("weather_server_url")
         val WEATHER_KEY = stringPreferencesKey("weather_key")
         val WEATHER_FOLLOWS_CAR = booleanPreferencesKey("weather_follows_car")
@@ -75,6 +80,11 @@ class SettingsRepository(context: Context) {
             layoutId = p[Keys.LAYOUT] ?: d.layoutId,
             themeId = p[Keys.THEME_ID] ?: d.themeId,
             configServerUrl = p[Keys.CONFIG_URL] ?: d.configServerUrl,
+            drivingMode = enumOr(p[Keys.DRIVING_MODE], d.drivingMode),
+            launchOnCarStart = p[Keys.CAR_START_LAUNCH] ?: d.launchOnCarStart,
+            resumeMusicOnCarStart = p[Keys.CAR_START_MUSIC] ?: d.resumeMusicOnCarStart,
+            obdAdapterAddress = p[Keys.OBD_ADDRESS] ?: d.obdAdapterAddress,
+            obdAdapterName = p[Keys.OBD_NAME] ?: d.obdAdapterName,
             dockApps = p[Keys.DOCK]?.split('\n')?.filter { it.isNotBlank() },
             weatherServerUrl = p[Keys.WEATHER_URL] ?: d.weatherServerUrl,
             weatherKey = p[Keys.WEATHER_KEY] ?: d.weatherKey,
@@ -103,6 +113,11 @@ class SettingsRepository(context: Context) {
         p[Keys.LAYOUT] = s.layoutId
         p[Keys.THEME_ID] = s.themeId
         p[Keys.CONFIG_URL] = s.configServerUrl
+        p[Keys.DRIVING_MODE] = s.drivingMode.name
+        p[Keys.CAR_START_LAUNCH] = s.launchOnCarStart
+        p[Keys.CAR_START_MUSIC] = s.resumeMusicOnCarStart
+        p[Keys.OBD_ADDRESS] = s.obdAdapterAddress
+        p[Keys.OBD_NAME] = s.obdAdapterName
         p[Keys.WEATHER_URL] = s.weatherServerUrl
         p[Keys.WEATHER_KEY] = s.weatherKey
         p[Keys.WEATHER_FOLLOWS_CAR] = s.weatherFollowsCar

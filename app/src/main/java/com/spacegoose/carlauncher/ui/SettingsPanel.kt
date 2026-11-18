@@ -61,6 +61,17 @@ import com.spacegoose.carlauncher.layout.DashboardLayout
 import com.spacegoose.carlauncher.settings.MediaSourcePreference
 import com.spacegoose.carlauncher.settings.ThemeMode
 import com.spacegoose.carlauncher.vehicle.SpeedUnit
+import android.Manifest
+import android.content.pm.PackageManager
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.spacegoose.carlauncher.automation.CarStart
+import com.spacegoose.carlauncher.settings.DrivingMode
+import com.spacegoose.carlauncher.vehicle.obd.PairedDevice
 import com.spacegoose.carlauncher.integrations.sports.SportsState
 import com.spacegoose.carlauncher.integrations.sports.TeamPick
 import com.spacegoose.carlauncher.integrations.weather.WeatherState
@@ -78,6 +89,9 @@ fun SettingsPanel(
     wavelengthWidgetAvailable: Boolean,
     onAddWavelengthWidget: () -> Unit,
     onRemoveWavelengthWidget: () -> Unit,
+    pairedObdDevices: () -> List<PairedDevice>,
+    onSetObdAdapter: (PairedDevice?) -> Unit,
+    onBluetoothPermissionResult: () -> Unit,
     weather: WeatherState,
     sports: SportsState,
     onSearchTeams: suspend (String) -> Result<List<TeamPick>>,
@@ -87,6 +101,18 @@ fun SettingsPanel(
 ) {
     val context = LocalContext.current
     fun open(action: String) = context.startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+
+    // Re-check permissions granted in system settings when the launcher comes back.
+    var resumes by remember { mutableIntStateOf(0) }
+    LifecycleResumeEffect(Unit) {
+        resumes++
+        onPauseOrDispose { }
+    }
+    val canComeForward = remember(resumes) { CarStart.canComeForward(context) }
+    val bluetoothPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        resumes++
+        onBluetoothPermissionResult()
+    }
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().padding(24.dp)) {
@@ -117,7 +143,7 @@ fun SettingsPanel(
                 Choice("Open the map as", MapLaunchMode.entries, settings.mapLaunchMode, { it.label }) { v ->
                     onChange { it.copy(mapLaunchMode = v) }
                 }
-                Toggle("Open the map when the launcher starts", settings.autoLaunchMap) { v ->
+                Toggle("Open the map when the car starts", settings.autoLaunchMap) { v ->
                     onChange { it.copy(autoLaunchMap = v) }
                 }
                 Stepper(
@@ -144,6 +170,47 @@ fun SettingsPanel(
                     if (!running) Action("Open Accessibility settings") { open(Settings.ACTION_ACCESSIBILITY_SETTINGS) }
                 }
                 if (settings.mapPaneContent == MapPaneContent.OPEN_MAP) MapExtrasSettingsSection()
+
+                Section("Driving")
+                Choice("Bigger buttons", DrivingMode.entries, settings.drivingMode, { it.label }) { v ->
+                    onChange { it.copy(drivingMode = v) }
+                }
+                Hint("Makes the dock, the media buttons and the app list bigger and easier to hit.")
+                Toggle("Bring the launcher up when the car starts", settings.launchOnCarStart) { v ->
+                    onChange { it.copy(launchOnCarStart = v) }
+                }
+                Toggle("Resume music when the car starts", settings.resumeMusicOnCarStart) { v ->
+                    onChange { it.copy(resumeMusicOnCarStart = v) }
+                }
+                if (settings.launchOnCarStart && !canComeForward) {
+                    Hint(
+                        "If your head unit sleeps instead of switching off, Android only lets the launcher come " +
+                            "back by itself with \"Display over other apps\" turned on."
+                    )
+                    Action("Turn on Display over other apps") {
+                        context.startActivity(
+                            Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    }
+                }
+
+                Section("Car data (OBD-II)")
+                Hint("Rpm, coolant, fuel and battery from a Bluetooth ELM327 adapter. Pair it in Bluetooth settings first.")
+                val needsBluetoothPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
+                if (needsBluetoothPermission) {
+                    Action("Allow Bluetooth to find the adapter") { bluetoothPermission.launch(Manifest.permission.BLUETOOTH_CONNECT) }
+                } else {
+                    val devices = remember(resumes) { pairedObdDevices() }
+                    val current = devices.firstOrNull { it.address == settings.obdAdapterAddress }
+                        ?: settings.obdAdapterAddress.takeIf { it.isNotEmpty() }
+                            ?.let { PairedDevice(settings.obdAdapterName.ifEmpty { it }, it) }
+                    val options = listOf<PairedDevice?>(null) + (devices + listOfNotNull(current)).distinctBy { it.address }
+                    Choice("Adapter", options, current, { it?.name ?: "None" }) { v -> onSetObdAdapter(v) }
+                    if (devices.isEmpty()) Hint("No paired Bluetooth devices found.")
+                }
+                Action("Open Bluetooth settings") { open(Settings.ACTION_BLUETOOTH_SETTINGS) }
 
                 Section("Media")
                 Choice("Media card follows", MediaSourcePreference.entries, settings.mediaSource, { it.label }) { v ->
@@ -249,7 +316,7 @@ internal fun Hint(text: String) {
 
 @Composable
 internal fun Action(label: String, onClick: () -> Unit) {
-    FilledTonalButton(onClick = onClick, modifier = Modifier.padding(vertical = 6.dp).heightIn(min = 56.dp)) {
+    FilledTonalButton(onClick = onClick, modifier = Modifier.padding(vertical = 6.dp).heightIn(min = TouchTarget - 8.dp)) {
         Text(label)
     }
 }
@@ -265,8 +332,8 @@ private fun Stepper(label: String, value: String, onSmaller: () -> Unit, onBigge
             Text(label, style = MaterialTheme.typography.bodyLarge)
             Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        FilledTonalButton(onClick = onSmaller, modifier = Modifier.heightIn(min = 56.dp)) { Text("Smaller") }
-        FilledTonalButton(onClick = onBigger, modifier = Modifier.heightIn(min = 56.dp)) { Text("Bigger") }
+        FilledTonalButton(onClick = onSmaller, modifier = Modifier.heightIn(min = TouchTarget - 8.dp)) { Text("Smaller") }
+        FilledTonalButton(onClick = onBigger, modifier = Modifier.heightIn(min = TouchTarget - 8.dp)) { Text("Bigger") }
     }
 }
 
@@ -292,7 +359,7 @@ private fun <T> Choice(label: String, options: List<T>, selected: T, name: (T) -
                     selected = option == selected,
                     onClick = { onSelect(option) },
                     label = { Text(name(option), style = MaterialTheme.typography.bodyLarge) },
-                    modifier = Modifier.heightIn(min = 52.dp),
+                    modifier = Modifier.heightIn(min = TouchTarget - 12.dp),
                 )
             }
         }

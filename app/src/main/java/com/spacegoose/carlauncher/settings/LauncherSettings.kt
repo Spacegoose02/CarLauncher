@@ -18,7 +18,20 @@ enum class LiveMapSource(val label: String) {
     FULL_SITE("waze.com Live Map"),
 }
 
-enum class ThemeMode(val label: String) { DARK("Dark"), LIGHT("Light"), SYSTEM("Follow system") }
+enum class ThemeMode(val label: String) {
+    DARK("Dark"),
+    LIGHT("Light"),
+    SYSTEM("Follow system"),
+    /** Light from sunrise to sunset, dark at night, worked out from where the car is. */
+    AUTO_SUN("Light by day, dark at night"),
+}
+
+/** When the dashboard uses its bigger, easier-to-hit buttons. */
+enum class DrivingMode(val label: String) {
+    OFF("Off"),
+    WHEN_MOVING("While moving"),
+    ALWAYS("Always"),
+}
 
 enum class AccentColor(val label: String, val argb: Long) {
     SKY("Sky", 0xFF4FC3F7),
@@ -44,6 +57,15 @@ data class LauncherSettings(
     val layoutId: String = com.spacegoose.carlauncher.layout.DashboardLayout.DEFAULT_ID,
     val liveMapSource: LiveMapSource = LiveMapSource.IFRAME_PAGE,
     val autoLaunchMap: Boolean = false,
+    /** Bigger buttons, dock and text for use while driving. */
+    val drivingMode: DrivingMode = DrivingMode.WHEN_MOVING,
+    /** Bring the launcher up by itself when the car (or head unit) powers on. */
+    val launchOnCarStart: Boolean = true,
+    /** Resume the music when the car starts. */
+    val resumeMusicOnCarStart: Boolean = false,
+    /** The paired Bluetooth OBD-II (ELM327) adapter's address; empty when none is set up. */
+    val obdAdapterAddress: String = "",
+    val obdAdapterName: String = "",
     /** Pressing Home puts a floating map back in its box. */
     val reopenMapOnHome: Boolean = true,
     /** Set when "inside the map box" was tried and the map opened full screen: Automatic then uses split-screen. */

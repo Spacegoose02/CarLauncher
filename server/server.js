@@ -34,6 +34,8 @@ const BUILTIN_MODULES = [
   { type: 'MAP', label: 'Map', description: 'Waze, Google Maps or the built-in map', maxPerLayout: 1 },
   { type: 'WEATHER', label: 'Weather', description: 'Current conditions, rain soon and alerts' },
   { type: 'SPORTS', label: 'Sports scores', description: 'Live, next and last games for your teams' },
+  { type: 'PHONE', label: 'Phone', description: 'Favourite contacts to call with one tap, and a keypad' },
+  { type: 'CAR_DATA', label: 'Car data (OBD-II)', description: 'Rpm, coolant, fuel and battery from a Bluetooth adapter' },
 ];
 const MODULE_RE = /^[A-Z][A-Z0-9_]{1,39}$/;
 const THEME_COLORS = ['accent', 'onAccent', 'background', 'surface', 'surfaceVariant', 'text', 'textSecondary'];
