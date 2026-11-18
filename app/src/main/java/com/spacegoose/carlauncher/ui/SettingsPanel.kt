@@ -135,6 +135,7 @@ fun SettingsPanel(
                     )
                     if (!running) Action("Open Accessibility settings") { open(Settings.ACTION_ACCESSIBILITY_SETTINGS) }
                 }
+                if (settings.mapPaneContent == MapPaneContent.OPEN_MAP) MapExtrasSettingsSection()
 
                 Section("Media")
                 Choice("Media card follows", MediaSourcePreference.entries, settings.mediaSource, { it.label }) { v ->

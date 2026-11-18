@@ -61,6 +61,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     // OpenStreetMap map in the map box, drawn by the launcher itself
     implementation("org.osmdroid:osmdroid-android:6.1.20")
+    // Offline maps for no-signal areas: Mapsforge .map files drawn on the device
+    implementation("org.osmdroid:osmdroid-mapsforge:6.1.20")
     // Lets the launcher ask for a freeform window (ActivityOptions.setLaunchWindowingMode is a hidden API)
     implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.1")
 

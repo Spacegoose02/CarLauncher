@@ -45,6 +45,16 @@ Third-party apps can't embed Waze or read its alerts, so the launcher shows Waze
 
 When the launcher is half of a split screen, it switches to a compact layout with the widgets only.
 
+## OpenStreetMap map box extras
+
+When the map box shows OpenStreetMap, **Settings → Map** has three extras:
+
+| | |
+|---|---|
+| **Speed cameras** | Speed, red light and average speed cameras from OpenStreetMap appear on the map. When one is ahead in your direction of travel, a banner shows how far it is (and the limit, when mapped), with a beep. Cameras within about 40 km are saved, so alerts work with no signal. |
+| **Offline maps** | Download a state or country from the free Mapsforge map server (or add a `.map` file from storage), and the map keeps working with no signal. Choose to use it only when there's no signal (default) or always. Places already seen on the online map are also kept, up to about 600 MB. |
+| **Traffic** | Live traffic colours and incident icons (crashes, roadworks, closures) from TomTom. Needs a free key from [developer.tomtom.com](https://developer.tomtom.com). |
+
 ## Config server (layouts and themes)
 
 The [`server/`](server) folder is a small Docker app with a web editor for making your own dashboard layouts
