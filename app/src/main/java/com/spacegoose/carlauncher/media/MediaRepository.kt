@@ -96,6 +96,13 @@ class MediaRepository(context: Context) {
         else c.transportControls.play()
     }
 
+    /** Starts playback if something can play and isn't already. Returns false when nothing is connected yet. */
+    fun play(): Boolean {
+        val c = current ?: return false
+        if (c.playbackState?.state != PlaybackStateCompat.STATE_PLAYING) c.transportControls.play()
+        return true
+    }
+
     fun next() {
         current?.transportControls?.skipToNext()
     }

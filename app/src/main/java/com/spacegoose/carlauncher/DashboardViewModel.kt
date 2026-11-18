@@ -26,6 +26,16 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import android.os.SystemClock
+import com.spacegoose.carlauncher.daynight.SunPosition
+import com.spacegoose.carlauncher.phone.QuickContact
+import com.spacegoose.carlauncher.settings.DrivingMode
+import com.spacegoose.carlauncher.vehicle.DrivingState
+import com.spacegoose.carlauncher.vehicle.obd.PairedDevice
 
 class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     val graph: AppGraph = (app as CarLauncherApp).graph
@@ -40,6 +50,36 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     val speed = graph.vehicle.speed
     val speedStatus = graph.vehicle.status
     val position = graph.vehicle.position
+
+    // Phone module
+    val contacts = graph.contacts.contacts
+    val contactsAllowed = graph.contacts.hasPermission
+
+    // Car data module (Bluetooth OBD-II)
+    val obdReading = graph.obd.reading
+    val obdStatus = graph.obd.status
+
+    /** Night where the car is (from the GPS position, or the clock until there is one), checked every minute. */
+    val isNight: StateFlow<Boolean> = combine(position, minuteTicker()) { p, now ->
+        SunPosition.isNight(p?.lat, p?.lon, now)
+    }.distinctUntilChanged().stateIn(viewModelScope, SharingStarted.Eagerly, SunPosition.isNight(null, null, System.currentTimeMillis()))
+
+    private val drivingState = DrivingState()
+
+    /** Bigger buttons: always, or while the car is moving, depending on the driving mode setting. */
+    val drivingMode: StateFlow<Boolean> = combine(settings, speed) { s, reading ->
+        val moving = drivingState.update(reading?.metersPerSecond, SystemClock.elapsedRealtime())
+        when (s.drivingMode) {
+            DrivingMode.OFF -> false
+            DrivingMode.ALWAYS -> true
+            DrivingMode.WHEN_MOVING -> moving
+        }
+    }.distinctUntilChanged().stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    private var lastStartActionsAt = 0L
+
+    /** Between onStart and onStop: the OBD adapter only connects while the dashboard is showing. */
+    private var started = false
 
     /** Layouts and themes from the config server (the cached copy until a sync finishes). */
     val serverConfig = graph.config.config
@@ -70,6 +110,11 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { settings.collect { graph.media.preference = it.mediaSource } }
         viewModelScope.launch { graph.apps.refresh() }
         viewModelScope.launch {
+            settings.map { it.obdAdapterAddress }.distinctUntilChanged().collect { address ->
+                if (started) graph.obd.start(address)
+            }
+        }
+        viewModelScope.launch {
             val url = loadedSettings().configServerUrl
             if (url.isNotBlank()) graph.config.sync(url)
         }
@@ -90,15 +135,66 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     suspend fun loadedSettings(): LauncherSettings = graph.settings.settings.first()
 
     fun onStart() {
+        started = true
         graph.media.start()
         graph.vehicle.start()
         graph.wavelengthWidget.startListening()
+        graph.contacts.start()
+        graph.obd.start(settings.value.obdAdapterAddress)
     }
 
     fun onStop() {
+        started = false
         graph.media.stop()
         graph.vehicle.stop()
         graph.wavelengthWidget.stopListening()
+        graph.contacts.stop()
+        graph.obd.stop()
+    }
+
+    fun onContactsPermissionResult() = graph.contacts.start()
+
+    fun onBluetoothPermissionResult() {
+        graph.obd.stop()
+        if (started) graph.obd.start(settings.value.obdAdapterAddress)
+    }
+
+    fun callContact(context: Context, contact: QuickContact) = graph.contacts.call(context, contact.number)
+
+    fun openPhoneApp(context: Context) {
+        if (!graph.contacts.openPhoneApp(context)) mapStatus = "No phone app found on this device."
+    }
+
+    fun pairedObdDevices(): List<PairedDevice> = graph.obd.pairedDevices()
+
+    fun setObdAdapter(device: PairedDevice?) = updateSettings {
+        it.copy(obdAdapterAddress = device?.address ?: "", obdAdapterName = device?.name ?: "")
+    }
+
+    /**
+     * The car started (or the launcher came up fresh): open the map and resume the music, as set.
+     * Runs at most once a minute, since a boot both creates the dashboard and sends the car-start intent.
+     */
+    fun runStartActions(activity: ComponentActivity, carStart: Boolean) {
+        val now = SystemClock.elapsedRealtime()
+        if (lastStartActionsAt != 0L && now - lastStartActionsAt < START_ACTIONS_GAP_MS) return
+        lastStartActionsAt = now
+        viewModelScope.launch {
+            val s = loadedSettings()
+            if (carStart && s.resumeMusicOnCarStart) resumeMusic()
+            if (s.autoLaunchMap) {
+                delay(AUTO_LAUNCH_DELAY_MS)
+                if (!activity.isDestroyed) openMap(activity)
+            }
+        }
+    }
+
+    /** Waits for the music app's session to show up (Wavelength takes a moment to connect), then plays. */
+    private fun resumeMusic() {
+        viewModelScope.launch {
+            withTimeoutOrNull(MUSIC_WAIT_MS) { nowPlaying.first { it != null } }
+            graph.media.play()
+        }
     }
 
     fun onLocationPermissionResult() {
@@ -236,6 +332,16 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
 
     private companion object {
         const val VERIFY_DELAY_MS = 3000L
+        const val AUTO_LAUNCH_DELAY_MS = 1200L
+        const val START_ACTIONS_GAP_MS = 60_000L
+        const val MUSIC_WAIT_MS = 15_000L
+    }
+
+    private fun minuteTicker() = flow {
+        while (true) {
+            emit(System.currentTimeMillis())
+            delay(60_000L)
+        }
     }
 
     private fun resolveDock(s: LauncherSettings, list: List<AppEntry>): List<AppEntry> {

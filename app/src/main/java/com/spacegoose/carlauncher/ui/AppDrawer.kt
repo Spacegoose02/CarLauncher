@@ -77,7 +77,7 @@ fun AppDrawer(
             }
             Spacer(Modifier.height(16.dp))
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(128.dp),
+                columns = GridCells.Adaptive(LocalCarSizes.current.drawerCell),
                 contentPadding = PaddingValues(bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -110,7 +110,7 @@ private fun DrawerItem(
                 .padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Image(app.icon, contentDescription = null, modifier = Modifier.size(72.dp))
+            Image(app.icon, contentDescription = null, modifier = Modifier.size(LocalCarSizes.current.drawerIcon))
             Spacer(Modifier.height(8.dp))
             Text(
                 app.label,

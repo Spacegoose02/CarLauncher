@@ -57,7 +57,7 @@ fun SpeedCard(
                                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
                             )
                         },
-                        modifier = Modifier.heightIn(min = 56.dp),
+                        modifier = Modifier.heightIn(min = TouchTarget - 8.dp),
                     ) { Text("Allow") }
                 } else {
                     val hasFix = status == SourceStatus.ACTIVE && reading != null

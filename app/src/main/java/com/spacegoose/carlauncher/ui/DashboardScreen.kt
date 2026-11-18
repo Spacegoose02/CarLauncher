@@ -33,6 +33,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.coerceIn
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spacegoose.carlauncher.DashboardViewModel
 import com.spacegoose.carlauncher.layout.DashboardLayout
@@ -43,6 +44,9 @@ import com.spacegoose.carlauncher.vehicle.SourceStatus
 
 private val Gap = 16.dp
 private const val OverlayWidthFraction = 0.44f
+private const val MinOverlayFraction = 0.3f
+private const val ShortScreenDp = 640
+private const val WideAspect = 1.7f
 
 @Composable
 fun DashboardScreen(vm: DashboardViewModel) {
@@ -60,9 +64,21 @@ fun DashboardScreen(vm: DashboardViewModel) {
     val serverConfig by vm.serverConfig.collectAsStateWithLifecycle()
     val configStatus by vm.configStatus.collectAsStateWithLifecycle()
     val configSyncing by vm.configSyncing.collectAsStateWithLifecycle()
+    val contacts by vm.contacts.collectAsStateWithLifecycle()
+    val contactsAllowed by vm.contactsAllowed.collectAsStateWithLifecycle()
+    val obdReading by vm.obdReading.collectAsStateWithLifecycle()
+    val obdStatus by vm.obdStatus.collectAsStateWithLifecycle()
 
     // Wide window: widgets + map pane. Narrow (we're one half of split-screen): widgets only, Waze has the rest.
-    val wide = LocalConfiguration.current.screenWidthDp >= 600
+    val configuration = LocalConfiguration.current
+    val wide = configuration.screenWidthDp >= 600
+    // Short screens (head units such as the Atoto S8 at 1024x600 or 1280x720): tighter gaps and a dock that
+    // takes a fixed share of the height, so the cards above keep enough room.
+    val short = configuration.screenHeightDp < ShortScreenDp ||
+        configuration.screenWidthDp >= configuration.screenHeightDp * WideAspect
+    val gap = if (short) 10.dp else Gap
+    val sizes = LocalCarSizes.current
+    val dockHeight = if (short) (configuration.screenHeightDp.dp * 0.17f).coerceIn(72.dp, sizes.dock) else sizes.dock
 
     var pendingWidgetId by rememberSaveable { mutableIntStateOf(LauncherSettings.NO_WIDGET) }
     val bindWidget = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -134,17 +150,30 @@ fun DashboardScreen(vm: DashboardViewModel) {
             WidgetType.WAVELENGTH_WIDGET ->
                 WavelengthWidgetCard(vm.graph.wavelengthWidget, settings.wavelengthWidgetId, modifier)
             WidgetType.MAP -> MapModule(modifier)
+            WidgetType.PHONE -> PhoneCard(
+                contacts = contacts,
+                allowed = contactsAllowed,
+                onPermissionResult = vm::onContactsPermissionResult,
+                onCall = { vm.callContact(context, it) },
+                onOpenKeypad = { vm.openPhoneApp(context) },
+                modifier = modifier,
+            )
+            WidgetType.CAR_DATA -> CarDataCard(obdReading, obdStatus, settings.speedUnit, vm::onBluetoothPermissionResult, modifier)
         }
     }
 
     val widgetBound = remember(settings.wavelengthWidgetId) {
         vm.graph.wavelengthWidget.isBound(settings.wavelengthWidgetId)
     }
-    // The chosen layout, minus modules that can't show: the Wavelength widget until it's added, and the map
-    // when the launcher is only half the screen (Waze has the other half).
-    val layout = remember(settings.layoutId, serverConfig, widgetBound, wide) {
+    val obdSetUp = settings.obdAdapterAddress.isNotBlank()
+    // The chosen layout, minus modules that can't show: the Wavelength widget until it's added, car data until
+    // an OBD-II adapter is picked, and the map when the launcher is only half the screen (Waze has the other half).
+    val layout = remember(settings.layoutId, serverConfig, widgetBound, wide, obdSetUp) {
         DashboardLayout.resolve(settings.layoutId, serverConfig.layouts)
-            .without { (it == WidgetType.WAVELENGTH_WIDGET && !widgetBound) || (it == WidgetType.MAP && !wide) }
+            .without {
+                (it == WidgetType.WAVELENGTH_WIDGET && !widgetBound) || (it == WidgetType.MAP && !wide) ||
+                    (it == WidgetType.CAR_DATA && !obdSetUp)
+            }
             .let { if (wide) it else it.singleColumn() }
     }
     LaunchedEffect(layout.hasMap) { if (!layout.hasMap) vm.mapPaneBounds = null }
@@ -155,17 +184,17 @@ fun DashboardScreen(vm: DashboardViewModel) {
             .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.safeDrawing)
     ) {
-        Column(Modifier.fillMaxSize().padding(Gap), verticalArrangement = Arrangement.spacedBy(Gap)) {
-            Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Gap)) {
+        Column(Modifier.fillMaxSize().padding(gap), verticalArrangement = Arrangement.spacedBy(gap)) {
+            Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
                 layout.columns.forEach { column ->
                     Column(
                         Modifier.weight(column.weight).fillMaxHeight(),
-                        verticalArrangement = Arrangement.spacedBy(Gap),
+                        verticalArrangement = Arrangement.spacedBy(gap),
                     ) {
                         column.rows.forEach { row ->
                             Row(
                                 Modifier.weight(row.weight).fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(Gap),
+                                horizontalArrangement = Arrangement.spacedBy(gap),
                             ) {
                                 row.widgets.forEach { Widget(it, Modifier.weight(1f).fillMaxHeight()) }
                             }
@@ -180,16 +209,19 @@ fun DashboardScreen(vm: DashboardViewModel) {
                 onOpenSettings = { vm.settingsOpen = true },
                 onLaunch = { vm.launchApp(context, it) },
                 onRemove = vm::removeFromDock,
-                modifier = Modifier.fillMaxWidth().height(96.dp),
+                modifier = Modifier.fillMaxWidth().height(dockHeight),
             )
         }
 
-        // With the map floating in its box, overlays stay in the widget column so the map never covers them.
-        // Overlays open on the side away from the map.
+        // With the map floating in its box, overlays stay beside it so the map never covers them: they open
+        // over the widest stretch of columns on one side of the map.
+        val around = layout.widthAroundMap()
         val overlayModifier = when {
             !wide -> Modifier.fillMaxSize()
-            layout.mapOnLeft -> Modifier.align(Alignment.TopEnd).fillMaxHeight().fillMaxWidth(OverlayWidthFraction)
-            else -> Modifier.fillMaxHeight().fillMaxWidth(OverlayWidthFraction)
+            around == null -> Modifier.fillMaxHeight().fillMaxWidth(OverlayWidthFraction)
+            around.second > around.first ->
+                Modifier.align(Alignment.TopEnd).fillMaxHeight().fillMaxWidth(around.second.coerceAtLeast(MinOverlayFraction))
+            else -> Modifier.fillMaxHeight().fillMaxWidth(around.first.coerceAtLeast(MinOverlayFraction))
         }
         if (vm.drawerOpen) Box(overlayModifier) {
             AppDrawer(
@@ -215,6 +247,9 @@ fun DashboardScreen(vm: DashboardViewModel) {
                 wavelengthWidgetAvailable = remember(wavelengthInstalled) { vm.wavelengthWidgetAvailable() },
                 onAddWavelengthWidget = addWidget,
                 onRemoveWavelengthWidget = vm::removeWavelengthWidget,
+                pairedObdDevices = vm::pairedObdDevices,
+                onSetObdAdapter = vm::setObdAdapter,
+                onBluetoothPermissionResult = vm::onBluetoothPermissionResult,
                 onClose = { vm.settingsOpen = false },
             )
         }

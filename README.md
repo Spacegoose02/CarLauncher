@@ -14,9 +14,15 @@ and a dock of your car apps.
 | **Other music apps** | With notification access granted, the card also follows Spotify, YouTube Music, podcasts and so on. Choose "Wavelength first", "Wavelength only" or "Whatever is playing". |
 | **GPS speedometer** | Big digits in mph or km/h. It works out speed from the last two fixes when the GPS module doesn't report it. |
 | **Dock and app drawer** | Long-press an app in the drawer to add it to the dock, and long-press a dock icon to remove it. The drawer has search. |
-| **Theming** | Dark, light or follow-system, and six accent colours. Full screen is on by default: the status bar, navigation bar and taskbar are hidden, and you swipe from an edge to show them. |
+| **Theming** | Dark, light, follow-system, or **light by day and dark at night** (worked out from sunrise and sunset where the car is), and six accent colours. Full screen is on by default: the status bar, navigation bar and taskbar are hidden, and you swipe from an edge to show them. |
+| **Phone module** | Favourite and frequent contacts as big buttons that call with one tap, then everyone else, plus a keypad button that opens the dialer or the head unit's Bluetooth phone app. |
+| **Car data module** | Rpm, coolant temperature, fuel level and battery voltage from a Bluetooth ELM327 OBD-II adapter. Pick the paired adapter in **Settings → Car data**; it reconnects by itself when the ignition comes on. |
+| **Car start** | When the car starts (a reboot, or a head unit waking from sleep after two minutes or more), the launcher comes to the front and can open the map and resume the music. |
+| **Wide screen layout** | "Wide screen (Atoto S8)": clock, speed and car data on the left, the map in the middle, media and phone on the right, with tighter spacing and a shorter dock on wide, short screens. |
 
-Everything is sized for driving: touch targets are at least 64dp and the text is large.
+Everything is sized for driving: touch targets are at least 64dp and the text is large. **Bigger buttons**
+(Settings → Driving) makes the dock, media controls, app list and settings bigger, either always or only
+while the car is moving (on above about 12 km/h, off after a minute stopped).
 
 ## Install
 
@@ -28,7 +34,9 @@ Everything is sized for driving: touch targets are at least 64dp and the text is
 4. Tap **Allow** on the speed card for location access.
 5. Optional: **Settings → Media → Let the media card follow other apps** grants notification access, so
    the card can follow apps other than Wavelength.
-6. Optional, Android 7 to 11 only (many head units): turn on **Car Launcher split-screen helper** in
+6. Optional: if your head unit sleeps rather than switching off, turn on **Settings → Driving → Display over
+   other apps**, so Android 10+ lets the launcher come back to the front by itself when the car starts.
+7. Optional, Android 7 to 11 only (many head units): turn on **Car Launcher split-screen helper** in
    Accessibility. Without it, those Android versions can't start split-screen by themselves (see below).
 
 ## How the Waze pane works
@@ -70,7 +78,5 @@ Every push to `main` builds the APK on GitHub Actions (`.github/workflows/build.
 
 Planned, and the code is laid out for them (see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)):
 
-- OBD2 data (rpm, coolant, fuel) through a Bluetooth ELM327 adapter
-- Automatic day and night themes
-- Auto-actions when the car starts or Bluetooth connects (open Waze, resume Wavelength, ...)
+- Speed from the OBD-II adapter when there's no GPS fix
 - Profile sync and backup

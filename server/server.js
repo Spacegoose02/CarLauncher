@@ -15,7 +15,7 @@ const SEED_DIR = path.join(__dirname, 'seed');
 
 const FORMAT_VERSION = 1;
 // Must match com.spacegoose.carlauncher.layout.WidgetType in the app.
-const WIDGET_TYPES = ['CLOCK', 'SPEEDOMETER', 'MEDIA', 'WAVELENGTH_WIDGET', 'MAP'];
+const WIDGET_TYPES = ['CLOCK', 'SPEEDOMETER', 'MEDIA', 'WAVELENGTH_WIDGET', 'MAP', 'PHONE', 'CAR_DATA'];
 const THEME_COLORS = ['accent', 'onAccent', 'background', 'surface', 'surfaceVariant', 'text', 'textSecondary'];
 const ID_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;

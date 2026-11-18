@@ -29,9 +29,17 @@ private val CarTypography = Typography().let { t ->
     )
 }
 
-/** [serverTheme], when given, is a theme from the config server and replaces the built-in colours. */
+/**
+ * [serverTheme], when given, is a theme from the config server and replaces the built-in colours.
+ * [isNight] is whether the sun is down where the car is, for [ThemeMode.AUTO_SUN].
+ */
 @Composable
-fun CarLauncherTheme(settings: LauncherSettings, serverTheme: ThemeDefinition? = null, content: @Composable () -> Unit) {
+fun CarLauncherTheme(
+    settings: LauncherSettings,
+    serverTheme: ThemeDefinition? = null,
+    isNight: Boolean = false,
+    content: @Composable () -> Unit,
+) {
     if (serverTheme != null) {
         MaterialTheme(colorScheme = serverTheme.colorScheme(), typography = CarTypography, content = content)
         return
@@ -40,9 +48,23 @@ fun CarLauncherTheme(settings: LauncherSettings, serverTheme: ThemeDefinition? =
         ThemeMode.DARK -> true
         ThemeMode.LIGHT -> false
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        ThemeMode.AUTO_SUN -> isNight
     }
     val accent = Color(settings.accent.argb)
-    val scheme = if (dark) {
+    val scheme = if (dark && settings.themeMode == ThemeMode.AUTO_SUN) {
+        // After sunset: near-black and dimmer text, so the screen doesn't dazzle on a dark road.
+        darkColorScheme(
+            primary = accent,
+            onPrimary = Color.Black,
+            secondary = accent,
+            background = Color(0xFF000000),
+            onBackground = Color(0xFFC9CED6),
+            surface = Color(0xFF0C0F14),
+            onSurface = Color(0xFFC9CED6),
+            surfaceVariant = Color(0xFF161B23),
+            onSurfaceVariant = Color(0xFF8A92A0),
+        )
+    } else if (dark) {
         darkColorScheme(
             primary = accent,
             onPrimary = Color.Black,

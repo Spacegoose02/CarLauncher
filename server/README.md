@@ -62,7 +62,7 @@ the server behind something like Tailscale or a reverse proxy with HTTPS.
 
 A **layout** is columns side by side, each a stack of rows, each row one to four modules. `weight` is a
 share of the space (a column at 0.6 next to one at 0.4 gets 60%). The dock always runs along the bottom.
-Modules: `CLOCK`, `SPEEDOMETER`, `MEDIA`, `WAVELENGTH_WIDGET`, `MAP` (one map at most).
+Modules: `CLOCK`, `SPEEDOMETER`, `MEDIA`, `WAVELENGTH_WIDGET`, `MAP` (one map at most), `PHONE` (favourite contacts and a keypad button), `CAR_DATA` (rpm, coolant, fuel and battery from a Bluetooth OBD-II adapter).
 
 ```json
 {

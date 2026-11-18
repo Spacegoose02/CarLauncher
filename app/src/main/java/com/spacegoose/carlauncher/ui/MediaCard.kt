@@ -61,7 +61,7 @@ fun MediaCard(
             val artSize = minOf(maxHeight, maxWidth * 0.38f)
             val showArt = maxWidth >= 300.dp
             val textWidth = if (showArt) maxWidth - artSize - 16.dp else maxWidth
-            val controlSize = minOf(maxHeight * 0.36f, textWidth / 3.4f, 76.dp).coerceAtLeast(40.dp)
+            val controlSize = minOf(maxHeight * 0.36f, textWidth / 3.4f, LocalCarSizes.current.mediaControlMax).coerceAtLeast(40.dp)
             val label = fitText(textWidth, maxHeight, chars = 14, heightFraction = 0.11f, max = 18.dp)
             val title = fitText(textWidth, maxHeight, chars = 14, heightFraction = 0.17f, max = 30.dp)
             val subtitle = fitText(textWidth, maxHeight, chars = 18, heightFraction = 0.13f, max = 22.dp)
