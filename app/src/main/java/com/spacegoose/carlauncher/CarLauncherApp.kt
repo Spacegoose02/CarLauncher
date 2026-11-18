@@ -4,6 +4,9 @@ import android.app.Application
 import android.content.Context
 import com.spacegoose.carlauncher.apps.AppRepository
 import com.spacegoose.carlauncher.config.ConfigRepository
+import com.spacegoose.carlauncher.integrations.ImageCache
+import com.spacegoose.carlauncher.integrations.sports.SportsRepository
+import com.spacegoose.carlauncher.integrations.weather.WeatherRepository
 import com.spacegoose.carlauncher.maps.MapLauncher
 import com.spacegoose.carlauncher.media.MediaRepository
 import com.spacegoose.carlauncher.media.WavelengthWidgetHost
@@ -33,4 +36,7 @@ class AppGraph(context: Context) {
     val maps = MapLauncher()
     val wavelengthWidget = WavelengthWidgetHost(context)
     val config = ConfigRepository(context)
+    val weather = WeatherRepository(context)
+    val sports = SportsRepository(context)
+    val images = ImageCache()
 }

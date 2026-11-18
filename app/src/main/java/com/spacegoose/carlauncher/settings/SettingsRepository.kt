@@ -47,6 +47,12 @@ class SettingsRepository(context: Context) {
         val LAYOUT = stringPreferencesKey("layout_id")
         val THEME_ID = stringPreferencesKey("theme_id")
         val CONFIG_URL = stringPreferencesKey("config_server_url")
+        val WEATHER_URL = stringPreferencesKey("weather_server_url")
+        val WEATHER_KEY = stringPreferencesKey("weather_key")
+        val WEATHER_FOLLOWS_CAR = booleanPreferencesKey("weather_follows_car")
+        val SPORTS_URL = stringPreferencesKey("sports_server_url")
+        val SPORTS_KEY = stringPreferencesKey("sports_key")
+        val SPORTS_TEAMS = stringPreferencesKey("sports_teams")
     }
 
     private fun read(p: Preferences): LauncherSettings {
@@ -70,6 +76,12 @@ class SettingsRepository(context: Context) {
             themeId = p[Keys.THEME_ID] ?: d.themeId,
             configServerUrl = p[Keys.CONFIG_URL] ?: d.configServerUrl,
             dockApps = p[Keys.DOCK]?.split('\n')?.filter { it.isNotBlank() },
+            weatherServerUrl = p[Keys.WEATHER_URL] ?: d.weatherServerUrl,
+            weatherKey = p[Keys.WEATHER_KEY] ?: d.weatherKey,
+            weatherFollowsCar = p[Keys.WEATHER_FOLLOWS_CAR] ?: d.weatherFollowsCar,
+            sportsServerUrl = p[Keys.SPORTS_URL] ?: d.sportsServerUrl,
+            sportsKey = p[Keys.SPORTS_KEY] ?: d.sportsKey,
+            sportsTeams = p[Keys.SPORTS_TEAMS]?.split(',')?.filter { it.isNotBlank() } ?: d.sportsTeams,
         )
     }
 
@@ -91,6 +103,12 @@ class SettingsRepository(context: Context) {
         p[Keys.LAYOUT] = s.layoutId
         p[Keys.THEME_ID] = s.themeId
         p[Keys.CONFIG_URL] = s.configServerUrl
+        p[Keys.WEATHER_URL] = s.weatherServerUrl
+        p[Keys.WEATHER_KEY] = s.weatherKey
+        p[Keys.WEATHER_FOLLOWS_CAR] = s.weatherFollowsCar
+        p[Keys.SPORTS_URL] = s.sportsServerUrl
+        p[Keys.SPORTS_KEY] = s.sportsKey
+        p[Keys.SPORTS_TEAMS] = s.sportsTeams.joinToString(",")
         val dock = s.dockApps
         if (dock == null) p.remove(Keys.DOCK) else p[Keys.DOCK] = dock.joinToString("\n")
     }

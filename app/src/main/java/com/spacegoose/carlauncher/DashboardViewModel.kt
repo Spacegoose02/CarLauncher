@@ -23,7 +23,16 @@ import com.spacegoose.carlauncher.apps.AppRepository
 import com.spacegoose.carlauncher.settings.LauncherSettings
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import com.spacegoose.carlauncher.integrations.sports.Scores
+import com.spacegoose.carlauncher.integrations.sports.TeamPick
+import com.spacegoose.carlauncher.layout.DashboardLayout
+import com.spacegoose.carlauncher.layout.WidgetType
+import com.spacegoose.carlauncher.vehicle.SpeedUnit
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -46,6 +55,9 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     val serverConfig = graph.config.config
     val configStatus = graph.config.status
     val configSyncing = graph.config.syncing
+
+    val weather = graph.weather.state
+    val sports = graph.sports.state
 
     val dockApps: StateFlow<List<AppEntry>> = combine(settings, apps) { s, list -> resolveDock(s, list) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -109,6 +121,7 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
         graph.media.start()
         graph.vehicle.start()
         graph.wavelengthWidget.startListening()
+        startIntegrations()
     }
 
     fun onStop() {
@@ -117,7 +130,77 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
         graph.media.stop()
         graph.vehicle.stop()
         graph.wavelengthWidget.stopListening()
+        integrationJobs.forEach { it.cancel() }
+        integrationJobs = emptyList()
     }
+
+    // Weather and scores: polled only while the dashboard is on screen and the layout shows the module.
+
+    private var integrationJobs: List<Job> = emptyList()
+
+    private data class WeatherQuery(val url: String, val key: String, val metric: Boolean, val followCar: Boolean)
+    private data class SportsQuery(val url: String, val key: String, val teams: List<String>)
+
+    private fun showing(type: WidgetType) = combine(settings, serverConfig) { s, c ->
+        DashboardLayout.resolve(s.layoutId, c.layouts).contains(type)
+    }
+
+    private fun startIntegrations() {
+        integrationJobs.forEach { it.cancel() }
+        val weatherJob = viewModelScope.launch {
+            combine(settings, showing(WidgetType.WEATHER)) { s, shown ->
+                if (shown) WeatherQuery(s.weatherServerUrl, s.weatherKey, s.speedUnit == SpeedUnit.KMH, s.weatherFollowsCar) else null
+            }.distinctUntilChanged().collectLatest { q ->
+                if (q == null) return@collectLatest
+                // Give GPS a moment for a first fix, so the first reading is where the car is.
+                if (q.followCar) withTimeoutOrNull(FIRST_FIX_WAIT_MS) { position.first { it != null } }
+                while (true) {
+                    refreshWeatherNow(q)
+                    delay(WEATHER_EVERY_MS)
+                }
+            }
+        }
+        val sportsJob = viewModelScope.launch {
+            combine(settings, showing(WidgetType.SPORTS)) { s, shown ->
+                if (shown) SportsQuery(s.sportsServerUrl, s.sportsKey, s.sportsTeams) else null
+            }.distinctUntilChanged().collectLatest { q ->
+                if (q == null) return@collectLatest
+                while (true) {
+                    graph.sports.refresh(q.url, q.key, q.teams)
+                    delay(Scores.refreshDelayMs(graph.sports.state.value.rows))
+                }
+            }
+        }
+        integrationJobs = listOf(weatherJob, sportsJob)
+    }
+
+    private suspend fun refreshWeatherNow(q: WeatherQuery) {
+        val at = if (q.followCar) position.value else null
+        graph.weather.refresh(q.url, q.key, q.metric, at)
+    }
+
+    /** Tapping the weather card. */
+    fun refreshWeather() {
+        val s = settings.value
+        viewModelScope.launch {
+            refreshWeatherNow(WeatherQuery(s.weatherServerUrl, s.weatherKey, s.speedUnit == SpeedUnit.KMH, s.weatherFollowsCar))
+        }
+    }
+
+    /** Tapping the scores card. */
+    fun refreshSports() {
+        val s = settings.value
+        viewModelScope.launch { graph.sports.refresh(s.sportsServerUrl, s.sportsKey, s.sportsTeams) }
+    }
+
+    suspend fun searchTeams(query: String): Result<List<TeamPick>> =
+        graph.sports.search(settings.value.sportsServerUrl, query)
+
+    fun addSportsTeam(key: String) = updateSettings { s ->
+        s.copy(sportsTeams = (s.sportsTeams + key).distinct().take(MAX_SPORTS_TEAMS))
+    }
+
+    fun removeSportsTeam(key: String) = updateSettings { s -> s.copy(sportsTeams = s.sportsTeams - key) }
 
     fun onLocationPermissionResult() {
         graph.vehicle.stop()
@@ -256,6 +339,9 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
 
     private companion object {
         const val VERIFY_DELAY_MS = 3000L
+        const val WEATHER_EVERY_MS = 10 * 60_000L
+        const val MAX_SPORTS_TEAMS = 20
+        const val FIRST_FIX_WAIT_MS = 8000L
     }
 
     private fun resolveDock(s: LauncherSettings, list: List<AppEntry>): List<AppEntry> {
