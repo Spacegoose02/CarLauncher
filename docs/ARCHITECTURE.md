@@ -20,6 +20,9 @@ daynight/   SunPosition (pure: sun elevation, so ThemeMode.AUTO_SUN goes dark at
 phone/      ContactsRepository: favourite/frequent contacts, calling, finding the dialer or BT phone app
 automation/ CarStart (boot, screen-on after a long sleep, power back: bring the dashboard up), CarStartRules (pure)
 apps/       AppRepository: installed apps, icons, launching
+integrations/  Self-hosted services: Http (GET + Bearer key), ImageCache (team logos),
+            weather/ (Weather Scout GET /api/connect/widget), sports/ (Stat Scraps GET /api/account/teams with
+            a feed key, or GET /api/ha/scorecards?items=cfb:259,... without one). Parsing is pure (Scores, WeatherNow).
 ui/         Compose screens and cards
 ```
 
@@ -63,5 +66,9 @@ Wavelength also has a `NowPlayingWidget` app widget. `WavelengthWidgetHost` host
   the server before the app). A server layout with a built-in's id replaces it. Server themes map onto the
   Material colour scheme in `CarLauncherTheme`. Adding a module means a new `WidgetType` here and in
   `WIDGET_TYPES` in `server/server.js`.
+- **Weather and sports modules**: `WEATHER` and `SPORTS`. `DashboardViewModel` polls them only while the
+  dashboard is on screen and the chosen layout shows the module (weather every 10 minutes at the car's GPS
+  position, scores every 45 seconds while a game is live and every 5 minutes otherwise). The last reading is
+  cached in `files/`, so the cards aren't empty in a car with no signal.
 - **Profile sync**: everything user-facing is in the one `launcher_settings` DataStore, so export and
   import cover the whole profile.

@@ -27,6 +27,7 @@
   aside li.on { background: var(--panel2); color: var(--text); }
   aside li small { display: block; font-size: 11px; opacity: .7; }
   section.editor { padding: 18px 22px; overflow: auto; }
+  a.btn { text-decoration: none; display: inline-block; }
   button, .btn { font: inherit; background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 7px 12px; cursor: pointer; }
   button:hover { border-color: var(--muted); }
   button.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
@@ -56,6 +57,7 @@
   .chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .chip { background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 3px 4px 3px 10px; font-size: 13px; display: inline-flex; gap: 4px; align-items: center; }
   .chip button { border: none; background: none; padding: 0 5px; color: var(--muted); }
+  .chip.unknown { border-style: dashed; color: var(--muted); }
   .chips select { font-size: 13px; padding: 3px 4px; }
 
   /* preview */
@@ -81,6 +83,16 @@
   .empty { color: var(--muted); padding: 40px 0; }
   dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 10px; }
   dialog::backdrop { background: rgba(0,0,0,.6); }
+  dialog.wide { width: min(620px, 92vw); }
+  dialog h3 { margin: 0 0 10px; font-size: 16px; }
+  dialog textarea { min-height: 120px; }
+  dialog .help { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
+  .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .live { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+  .live i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; }
+  .live.on i { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+  ul.report { margin: 8px 0 0; padding-left: 18px; font-size: 14px; }
+  ul.report li.bad { color: var(--danger); }
   @media (max-width: 760px) { main { grid-template-columns: 1fr; } aside { border-right: none; border-bottom: 1px solid var(--line); } }
 </style>
 </head>
@@ -88,10 +100,15 @@
 <header>
   <h1>Car Launcher config</h1>
   <span class="url">In the launcher, set <b>Settings → Config server</b> to <code id="serverUrl"></code></span>
+  <span class="live" id="live" title="Cars with live updates on get changes as soon as you save"><i></i><span>Checking for cars…</span></span>
   <nav class="tabs">
     <button data-tab="layouts" class="on">Layouts</button>
     <button data-tab="themes">Themes</button>
   </nav>
+  <div class="actions">
+    <button id="importBtn" title="Add layouts and themes from a share code or a file">Import</button>
+    <a class="btn" href="/api/export?download" title="Download every layout and theme as one file (a backup, or to move to another server)">Export all</a>
+  </div>
 </header>
 <main>
   <aside>
@@ -109,9 +126,48 @@
   </form>
 </dialog>
 
+<dialog id="shareDlg" class="wide">
+  <h3 id="shareTitle">Share</h3>
+  <p class="help">Send this code to anyone with Car Launcher. They paste it into <b>Import</b> on their own config server.</p>
+  <textarea id="shareCode" readonly spellcheck="false"></textarea>
+  <div class="actions" style="margin-top:10px">
+    <button id="copyCode" class="primary">Copy code</button>
+    <button id="copyLink" title="A link that opens this editor with the import ready (for people who can reach this server)">Copy link</button>
+    <a class="btn" id="shareDownload" href="#">Download file</a>
+    <span class="msg ok" id="shareMsg" style="margin:0"></span>
+    <span style="flex:1"></span>
+    <button onclick="this.closest('dialog').close()">Close</button>
+  </div>
+</dialog>
+
+<dialog id="importDlg" class="wide">
+  <h3>Import layouts and themes</h3>
+  <p class="help">Paste a share code or JSON, or pick a file someone sent you (or a backup from <b>Export all</b>).</p>
+  <textarea id="importText" spellcheck="false" placeholder="CL1.… or { &quot;name&quot;: … }"></textarea>
+  <div class="actions" style="margin-top:10px">
+    <input type="file" id="importFile" accept=".json,application/json,text/plain">
+    <span style="flex:1"></span>
+    <label>If the name is taken
+      <select id="importConflict">
+        <option value="copy">keep both</option>
+        <option value="replace">replace mine</option>
+        <option value="skip">keep mine</option>
+      </select>
+    </label>
+  </div>
+  <div class="msg" id="importMsg"></div>
+  <ul class="report" id="importReport"></ul>
+  <div class="actions" style="margin-top:12px;justify-content:flex-end">
+    <button onclick="this.closest('dialog').close()">Close</button>
+    <button id="importGo" class="primary">Import</button>
+  </div>
+</dialog>
+
 <script>
 'use strict';
 const WIDGET_LABELS = { CLOCK: 'Clock', SPEEDOMETER: 'Speed', MEDIA: 'Media', WAVELENGTH_WIDGET: 'Wavelength widget', MAP: 'Map', PHONE: 'Phone', CAR_DATA: 'Car data (OBD-II)' };
+const moduleLabel = (t) => (meta.modules || []).find((m) => m.type === t)?.label || WIDGET_LABELS[t] || t;
+const knownModule = (t) => (meta.modules ? meta.modules.some((m) => m.type === t) : t in WIDGET_LABELS);
 const COLOR_LABELS = { accent: 'Accent', onAccent: 'Text on accent', background: 'Background', surface: 'Cards', surfaceVariant: 'Raised cards', text: 'Text', textSecondary: 'Secondary text' };
 let meta = { widgetTypes: Object.keys(WIDGET_LABELS), themeColors: Object.keys(COLOR_LABELS) };
 let tab = 'layouts';
@@ -135,13 +191,13 @@ const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$
 
 $('#serverUrl').textContent = location.origin;
 
-async function api(method, path, body) {
-  const headers = { 'Content-Type': 'application/json' };
+async function api(method, path, body, raw) {
+  const headers = { 'Content-Type': raw ? 'text/plain' : 'application/json' };
   const token = localStorage.getItem('adminToken');
   if (token) headers.Authorization = 'Bearer ' + token;
-  const res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  const res = await fetch(path, { method, headers, body: body === undefined ? undefined : raw ? body : JSON.stringify(body) });
   if (res.status === 401) {
-    if (await askToken()) return api(method, path, body);
+    if (await askToken()) return api(method, path, body, raw);
     throw new Error('Not saved: the admin token is needed.');
   }
   const data = res.status === 204 ? null : await res.json();
@@ -167,6 +223,7 @@ async function load() {
   try { meta = await api('GET', '/api/meta'); } catch {}
   const [layouts, themes] = await Promise.all([api('GET', '/api/layouts'), api('GET', '/api/themes')]);
   items = { layouts, themes };
+  refreshStatus();
   previewTheme = previewTheme && themes.find((t) => t.id === previewTheme.id) || themes.find((t) => t.dark) || themes[0] || null;
   renderList();
 }
@@ -225,6 +282,7 @@ function renderEditor() {
     el('div', { class: 'field' }, el('label', {}, 'Name'), name),
     el('div', { class: 'field' }, el('label', {}, 'ID (fixed once saved)'), idInput),
     el('div', { class: 'spacer' }),
+    originalId && el('button', { onclick: share, title: 'Get a code or file to send to someone else' }, 'Share'),
     originalId && el('button', { onclick: duplicate }, 'Duplicate'),
     originalId && el('button', { class: 'danger', onclick: remove }, 'Delete'),
     el('button', { class: 'primary', onclick: save }, 'Save'),
@@ -269,7 +327,10 @@ async function save() {
     const saved = await api('PUT', `/api/${tab}/${encodeURIComponent(id)}`, current);
     await load();
     edit(structuredClone(saved), id);
-    setMsg('Saved. The launcher picks it up on its next sync.');
+    const st = await refreshStatus();
+    setMsg(st && st.listening
+      ? `Saved and sent to ${st.listening === 1 ? 'the car' : st.listening + ' cars'}.`
+      : 'Saved. The car picks it up next time it connects.');
   } catch (e) { setMsg(e.message, true); }
 }
 
@@ -320,11 +381,21 @@ function renderLayout(body) {
         c.rows.length > 1 && el('button', { class: 'small danger', title: 'Remove row', onclick: () => { c.rows.splice(ri, 1); rerender(); } }, '✕'),
       ),
       el('div', { class: 'chips' },
-        r.widgets.map((w, wi) => el('span', { class: 'chip' }, WIDGET_LABELS[w] || w,
+        r.widgets.map((w, wi) => el('span', {
+          class: 'chip' + (knownModule(w) ? '' : ' unknown'),
+          title: knownModule(w) ? ((meta.modules || []).find((m) => m.type === w)?.description || '') : 'Not a module this server knows. Launchers without it skip this layout.',
+        }, moduleLabel(w),
           el('button', { title: 'Remove', onclick: () => { r.widgets.splice(wi, 1); rerender(); } }, '✕'))),
-        r.widgets.length < 4 && el('select', { onchange: (e) => { if (e.target.value) { r.widgets.push(e.target.value); rerender(); } } },
+        r.widgets.length < 4 && el('select', { onchange: (e) => {
+          let v = e.target.value;
+          if (v === '__other') {
+            v = (prompt('Module name, as the launcher knows it (like OBD_GAUGE):') || '').trim().toUpperCase().replace(/[^A-Z0-9_]+/g, '_');
+          }
+          if (v) { r.widgets.push(v); rerender(); } else e.target.value = '';
+        } },
           el('option', { value: '' }, '+ module'),
-          meta.widgetTypes.map((t) => el('option', { value: t }, WIDGET_LABELS[t] || t))),
+          (meta.modules || meta.widgetTypes.map((t) => ({ type: t }))).map((m) => el('option', { value: m.type, title: m.description || '' }, moduleLabel(m.type))),
+          el('option', { value: '__other' }, 'Other…')),
       ),
     )),
     c.rows.length < 8 && el('button', { class: 'small', onclick: () => { c.rows.push({ weight: 1, widgets: ['CLOCK'] }); rerender(); } }, '+ Row'),
@@ -355,7 +426,7 @@ function preview(L, theme) {
     if (w === 'CLOCK') box.append(el('span', { class: 'pv-big', style: `color:${c.text}` }, '12:45'));
     else if (w === 'SPEEDOMETER') box.append(el('span', { class: 'pv-big', style: `color:${c.accent}` }, '42'), el('span', { style: 'margin-left:4px' }, 'mph'));
     else if (w === 'MEDIA') box.append(el('span', { style: `color:${c.text}` }, '♪ Now playing'));
-    else box.append(WIDGET_LABELS[w] || w);
+    else box.append(moduleLabel(w));
     return box;
   };
   return el('div', { class: 'preview', style: `background:${c.background}` },
@@ -392,7 +463,106 @@ function renderTheme(body) {
   );
 }
 
-load().catch((e) => { $('#editor').replaceChildren(el('div', { class: 'msg err' }, 'Could not reach the server: ' + e.message)); });
+// ---- live status, sharing and import ---------------------------------------------------------------
+
+let lastRevision = null;
+async function refreshStatus() {
+  try {
+    const st = await (await fetch('/api/status')).json();
+    const live = $('#live');
+    live.classList.toggle('on', st.listening > 0);
+    live.querySelector('span').textContent = st.listening > 0
+      ? (st.listening === 1 ? 'Car connected, changes go live' : `${st.listening} cars connected, changes go live`)
+      : st.lastSync ? `Car last synced ${ago(st.lastSync)}` : 'No car has synced yet';
+    // Something changed elsewhere (another tab, an import, a hand edit): refresh the list.
+    if (lastRevision && st.revision !== lastRevision) {
+      const [layouts, themes] = await Promise.all([api('GET', '/api/layouts'), api('GET', '/api/themes')]);
+      items = { layouts, themes };
+      renderList();
+    }
+    lastRevision = st.revision;
+    return st;
+  } catch { return null; }
+}
+
+function ago(iso) {
+  const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000);
+  if (s < 90) return 'just now';
+  if (s < 5400) return `${Math.round(s / 60)} min ago`;
+  if (s < 129600) return `${Math.round(s / 3600)} h ago`;
+  return new Date(iso).toLocaleDateString();
+}
+setInterval(refreshStatus, 10000);
+
+async function share() {
+  const q = `${tab}=${encodeURIComponent(originalId)}`;
+  try {
+    const { code } = await api('GET', `/api/share?${q}`);
+    $('#shareTitle').textContent = `Share "${current.name}"`;
+    $('#shareCode').value = code;
+    $('#shareMsg').textContent = '';
+    $('#shareDownload').href = `/api/export?${q}&download`;
+    $('#copyLink').onclick = () => copy(`${location.origin}/#import=${code}`, 'Link copied');
+    $('#shareDlg').showModal();
+    $('#shareCode').select();
+  } catch (e) { setMsg(e.message, true); }
+}
+
+async function copy(text, done) {
+  try { await navigator.clipboard.writeText(text); } catch {
+    $('#shareCode').select(); document.execCommand('copy');
+  }
+  $('#shareMsg').textContent = done;
+}
+$('#copyCode').addEventListener('click', () => copy($('#shareCode').value, 'Code copied'));
+
+function openImport(text) {
+  $('#importText').value = text || '';
+  $('#importFile').value = '';
+  $('#importMsg').textContent = '';
+  $('#importReport').replaceChildren();
+  $('#importDlg').showModal();
+}
+$('#importBtn').addEventListener('click', () => openImport(''));
+$('#importFile').addEventListener('change', async (e) => {
+  const f = e.target.files[0];
+  if (f) $('#importText').value = await f.text();
+});
+$('#importGo').addEventListener('click', async () => {
+  const text = $('#importText').value.trim();
+  const msg = $('#importMsg');
+  if (!text) { msg.className = 'msg err'; msg.textContent = 'Paste a code or pick a file first.'; return; }
+  try {
+    const isCode = text.startsWith('CL1.');
+    if (!isCode) JSON.parse(text);
+    const r = await api('POST', `/api/import?conflict=${$('#importConflict').value}`, text, true);
+    const line = (x, what) => el('li', {}, `${x.kind === 'themes' ? 'Theme' : 'Layout'} "${x.name}" ${what}`);
+    $('#importReport').replaceChildren(
+      ...r.added.map((x) => line(x, x.renamedFrom ? `added as ${x.id} (you already had a different ${x.renamedFrom})` : 'added')),
+      ...r.replaced.map((x) => line(x, 'replaced yours')),
+      ...r.unchanged.map((x) => line(x, 'is already here')),
+      ...r.skipped.map((x) => line(x, 'skipped, you kept yours')),
+      ...r.failed.map((x) => el('li', { class: 'bad' }, `"${x.name}" could not be imported: ${x.errors.join('; ')}`)),
+    );
+    const n = r.added.length + r.replaced.length;
+    msg.className = 'msg ' + (n || !r.failed.length ? 'ok' : 'err');
+    msg.textContent = n ? `Imported ${n}.` : r.failed.length ? 'Nothing imported.' : 'Nothing new to import.';
+    await load();
+  } catch (e) {
+    msg.className = 'msg err';
+    msg.textContent = e instanceof SyntaxError ? "That isn't a share code or valid JSON." : e.message;
+  }
+});
+
+function importFromHash() {
+  const m = location.hash.match(/^#import=(.+)$/);
+  if (!m) return;
+  history.replaceState(null, '', location.pathname);
+  openImport(decodeURIComponent(m[1]));
+}
+window.addEventListener('hashchange', importFromHash);
+
+load().then(importFromHash).catch((e) => { $('#editor').replaceChildren(el('div', { class: 'msg err' }, 'Could not reach the server: ' + e.message)); });
 </script>
 </body>
 </html>

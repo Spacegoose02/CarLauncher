@@ -72,6 +72,9 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.spacegoose.carlauncher.automation.CarStart
 import com.spacegoose.carlauncher.settings.DrivingMode
 import com.spacegoose.carlauncher.vehicle.obd.PairedDevice
+import com.spacegoose.carlauncher.integrations.sports.SportsState
+import com.spacegoose.carlauncher.integrations.sports.TeamPick
+import com.spacegoose.carlauncher.integrations.weather.WeatherState
 
 @Composable
 fun SettingsPanel(
@@ -89,6 +92,11 @@ fun SettingsPanel(
     pairedObdDevices: () -> List<PairedDevice>,
     onSetObdAdapter: (PairedDevice?) -> Unit,
     onBluetoothPermissionResult: () -> Unit,
+    weather: WeatherState,
+    sports: SportsState,
+    onSearchTeams: suspend (String) -> Result<List<TeamPick>>,
+    onAddTeam: (String) -> Unit,
+    onRemoveTeam: (String) -> Unit,
     onClose: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -161,6 +169,7 @@ fun SettingsPanel(
                     )
                     if (!running) Action("Open Accessibility settings") { open(Settings.ACTION_ACCESSIBILITY_SETTINGS) }
                 }
+                if (settings.mapPaneContent == MapPaneContent.OPEN_MAP) MapExtrasSettingsSection()
 
                 Section("Driving")
                 Choice("Bigger buttons", DrivingMode.entries, settings.drivingMode, { it.label }) { v ->
@@ -219,6 +228,12 @@ fun SettingsPanel(
 
                 Section("Speed")
                 Choice("Units", SpeedUnit.entries, settings.speedUnit, { it.label }) { v -> onChange { it.copy(speedUnit = v) } }
+
+                Section("Weather")
+                WeatherSettings(settings, weather, onChange)
+
+                Section("Sports scores")
+                SportsSettings(settings, sports, onChange, onSearchTeams, onAddTeam, onRemoveTeam)
 
                 Section("Look")
                 val serverTheme = settings.themeId.takeIf { it.isNotEmpty() }?.let(serverConfig::theme)
@@ -283,14 +298,14 @@ private fun ConfigServer(
 }
 
 @Composable
-private fun Section(title: String) {
+internal fun Section(title: String) {
     Spacer(Modifier.height(20.dp))
     Text(title, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
     HorizontalDivider(Modifier.padding(vertical = 8.dp))
 }
 
 @Composable
-private fun Hint(text: String) {
+internal fun Hint(text: String) {
     Text(
         text,
         style = MaterialTheme.typography.bodyMedium,
@@ -300,7 +315,7 @@ private fun Hint(text: String) {
 }
 
 @Composable
-private fun Action(label: String, onClick: () -> Unit) {
+internal fun Action(label: String, onClick: () -> Unit) {
     FilledTonalButton(onClick = onClick, modifier = Modifier.padding(vertical = 6.dp).heightIn(min = TouchTarget - 8.dp)) {
         Text(label)
     }
@@ -323,7 +338,7 @@ private fun Stepper(label: String, value: String, onSmaller: () -> Unit, onBigge
 }
 
 @Composable
-private fun Toggle(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+internal fun Toggle(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = TouchTarget).clickable { onChange(!checked) },
         verticalAlignment = Alignment.CenterVertically,

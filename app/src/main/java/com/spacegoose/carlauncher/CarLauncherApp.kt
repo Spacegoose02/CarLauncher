@@ -7,6 +7,9 @@ import com.spacegoose.carlauncher.automation.CarStart
 import com.spacegoose.carlauncher.phone.ContactsRepository
 import com.spacegoose.carlauncher.vehicle.obd.Elm327Source
 import com.spacegoose.carlauncher.config.ConfigRepository
+import com.spacegoose.carlauncher.integrations.ImageCache
+import com.spacegoose.carlauncher.integrations.sports.SportsRepository
+import com.spacegoose.carlauncher.integrations.weather.WeatherRepository
 import com.spacegoose.carlauncher.maps.MapLauncher
 import com.spacegoose.carlauncher.media.MediaRepository
 import com.spacegoose.carlauncher.media.WavelengthWidgetHost
@@ -40,4 +43,7 @@ class AppGraph(context: Context) {
     val contacts = ContactsRepository(context)
     /** The Bluetooth OBD-II adapter, for the car data module. */
     val obd = Elm327Source(context)
+    val weather = WeatherRepository(context)
+    val sports = SportsRepository(context)
+    val images = ImageCache()
 }

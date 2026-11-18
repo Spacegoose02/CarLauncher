@@ -3,6 +3,8 @@
 
     <!-- Waze Live Map in the map box, OpenStreetMap tiles, and the config server -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- The OpenStreetMap map switches to offline maps when there's no signal -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- GPS speedometer -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />

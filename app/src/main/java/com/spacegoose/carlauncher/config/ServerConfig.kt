@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 
@@ -31,6 +32,8 @@ data class ServerConfig(
     val skipped: Int = 0,
     /** When it was fetched, in epoch millis; 0 when never. */
     val fetchedAt: Long = 0,
+    /** The server's fingerprint of this content, for asking "anything new?"; empty from older servers. */
+    val revision: String = "",
 ) {
     fun theme(id: String): ThemeDefinition? = themes.firstOrNull { it.id == id }
 
@@ -56,7 +59,8 @@ data class ServerConfig(
             val themes = each("themes") { o ->
                 json.decodeFromJsonElement(ThemeDefinition.serializer(), o).takeIf { it.isUsable() }
             }
-            return ServerConfig(layouts.distinctBy { it.id }, themes.distinctBy { it.id }, skipped, fetchedAt)
+            val revision = (root["revision"] as? JsonPrimitive)?.takeIf { it.isString }?.content.orEmpty()
+            return ServerConfig(layouts.distinctBy { it.id }, themes.distinctBy { it.id }, skipped, fetchedAt, revision)
         }
 
         /** The saved copy written by [toJson]. */

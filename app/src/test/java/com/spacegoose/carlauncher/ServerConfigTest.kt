@@ -45,10 +45,17 @@ class ServerConfigTest {
     @Test fun serverLayoutsReplaceBuiltInsWithTheSameId() {
         val c = ServerConfig.parseServerResponse(response)
         val all = DashboardLayout.available(c.layouts)
-        assertEquals(listOf("media_wide", "map_right", "map_left", "no_map", "wide_short"), all.map { it.id })
+        assertEquals(listOf("media_wide", "map_right", "map_left", "no_map", "map_info", "wide_short"), all.map { it.id })
         assertEquals("My map right", DashboardLayout.resolve("map_right", c.layouts).name)
         assertEquals(DashboardLayout.MapLeft, DashboardLayout.resolve("map_left", c.layouts))
         assertEquals(DashboardLayout.MapRight, DashboardLayout.resolve("gone", emptyList()))
+    }
+
+    @Test fun readsTheRevisionForLiveUpdates() {
+        assertEquals("", ServerConfig.parseServerResponse(response).revision)
+        val withRev = ServerConfig.parseServerResponse("""{"revision":"0123456789abcdef","layouts":[],"themes":[]}""")
+        assertEquals("0123456789abcdef", withRev.revision)
+        assertEquals(withRev, ServerConfig.fromCache(withRev.toJson()))
     }
 
     @Test fun normalizesServerAddresses() {

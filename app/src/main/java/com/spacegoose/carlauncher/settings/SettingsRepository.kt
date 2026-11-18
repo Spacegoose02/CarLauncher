@@ -52,6 +52,12 @@ class SettingsRepository(context: Context) {
         val CAR_START_MUSIC = booleanPreferencesKey("resume_music_on_car_start")
         val OBD_ADDRESS = stringPreferencesKey("obd_adapter_address")
         val OBD_NAME = stringPreferencesKey("obd_adapter_name")
+        val WEATHER_URL = stringPreferencesKey("weather_server_url")
+        val WEATHER_KEY = stringPreferencesKey("weather_key")
+        val WEATHER_FOLLOWS_CAR = booleanPreferencesKey("weather_follows_car")
+        val SPORTS_URL = stringPreferencesKey("sports_server_url")
+        val SPORTS_KEY = stringPreferencesKey("sports_key")
+        val SPORTS_TEAMS = stringPreferencesKey("sports_teams")
     }
 
     private fun read(p: Preferences): LauncherSettings {
@@ -80,6 +86,12 @@ class SettingsRepository(context: Context) {
             obdAdapterAddress = p[Keys.OBD_ADDRESS] ?: d.obdAdapterAddress,
             obdAdapterName = p[Keys.OBD_NAME] ?: d.obdAdapterName,
             dockApps = p[Keys.DOCK]?.split('\n')?.filter { it.isNotBlank() },
+            weatherServerUrl = p[Keys.WEATHER_URL] ?: d.weatherServerUrl,
+            weatherKey = p[Keys.WEATHER_KEY] ?: d.weatherKey,
+            weatherFollowsCar = p[Keys.WEATHER_FOLLOWS_CAR] ?: d.weatherFollowsCar,
+            sportsServerUrl = p[Keys.SPORTS_URL] ?: d.sportsServerUrl,
+            sportsKey = p[Keys.SPORTS_KEY] ?: d.sportsKey,
+            sportsTeams = p[Keys.SPORTS_TEAMS]?.split(',')?.filter { it.isNotBlank() } ?: d.sportsTeams,
         )
     }
 
@@ -106,6 +118,12 @@ class SettingsRepository(context: Context) {
         p[Keys.CAR_START_MUSIC] = s.resumeMusicOnCarStart
         p[Keys.OBD_ADDRESS] = s.obdAdapterAddress
         p[Keys.OBD_NAME] = s.obdAdapterName
+        p[Keys.WEATHER_URL] = s.weatherServerUrl
+        p[Keys.WEATHER_KEY] = s.weatherKey
+        p[Keys.WEATHER_FOLLOWS_CAR] = s.weatherFollowsCar
+        p[Keys.SPORTS_URL] = s.sportsServerUrl
+        p[Keys.SPORTS_KEY] = s.sportsKey
+        p[Keys.SPORTS_TEAMS] = s.sportsTeams.joinToString(",")
         val dock = s.dockApps
         if (dock == null) p.remove(Keys.DOCK) else p[Keys.DOCK] = dock.joinToString("\n")
     }

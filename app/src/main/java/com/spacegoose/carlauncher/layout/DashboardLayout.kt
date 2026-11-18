@@ -7,7 +7,7 @@ import kotlinx.serialization.json.Json
 /** The modules the dashboard can show. New modules (weather, ...) get a new entry here. */
 @Serializable
 enum class WidgetType {
-    CLOCK, SPEEDOMETER, MEDIA, WAVELENGTH_WIDGET, MAP,
+    CLOCK, SPEEDOMETER, MEDIA, WAVELENGTH_WIDGET, MAP, WEATHER, SPORTS,
     /** Favourite contacts to call, and a keypad button. */
     PHONE,
     /** Rpm, coolant, fuel and battery from a Bluetooth OBD-II (ELM327) adapter. Hidden until one is set up. */
@@ -28,7 +28,9 @@ data class LayoutColumn(val rows: List<WidgetRow>, val weight: Float = 1f)
 @Serializable
 data class DashboardLayout(val id: String, val name: String, val columns: List<LayoutColumn>) {
 
-    val hasMap: Boolean get() = columns.any { c -> c.rows.any { WidgetType.MAP in it.widgets } }
+    val hasMap: Boolean get() = contains(WidgetType.MAP)
+
+    fun contains(type: WidgetType): Boolean = columns.any { c -> c.rows.any { type in it.widgets } }
 
     /**
      * The share of the width (0 to 1) to the left and to the right of the map's column, or null without a map.
@@ -95,6 +97,22 @@ data class DashboardLayout(val id: String, val name: String, val columns: List<L
             ),
         )
 
+        /** Map on the right, with weather and your teams' scores beside the clock and speed. */
+        val MapWithInfo = DashboardLayout(
+            "map_info", "Map with weather and scores",
+            listOf(
+                LayoutColumn(
+                    listOf(
+                        WidgetRow(listOf(WidgetType.CLOCK, WidgetType.SPEEDOMETER), weight = 1f),
+                        WidgetRow(listOf(WidgetType.WEATHER, WidgetType.SPORTS), weight = 1.2f),
+                        WidgetRow(listOf(WidgetType.MEDIA), weight = 1.2f),
+                    ),
+                    weight = 0.42f,
+                ),
+                Map,
+            ),
+        )
+
         /**
          * For wide, short screens such as the Atoto S8 (about 1280x720, or 1024x600 on the 7-inch): three
          * columns so nothing is squashed into a short row, with the map in the middle and the big buttons
@@ -122,7 +140,7 @@ data class DashboardLayout(val id: String, val name: String, val columns: List<L
             ),
         )
 
-        val BuiltIn = listOf(MapRight, MapLeft, NoMap, WideShort)
+        val BuiltIn = listOf(MapRight, MapLeft, NoMap, MapWithInfo, WideShort)
         const val DEFAULT_ID = "map_right"
 
         fun byId(id: String): DashboardLayout = BuiltIn.firstOrNull { it.id == id } ?: MapRight

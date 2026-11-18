@@ -14,6 +14,8 @@ and a dock of your car apps.
 | **Other music apps** | With notification access granted, the card also follows Spotify, YouTube Music, podcasts and so on. Choose "Wavelength first", "Wavelength only" or "Whatever is playing". |
 | **GPS speedometer** | Big digits in mph or km/h. It works out speed from the last two fixes when the GPS module doesn't report it. |
 | **Dock and app drawer** | Long-press an app in the drawer to add it to the dock, and long-press a dock icon to remove it. The drawer has search. |
+| **Weather** | A Weather module from your [Weather Scout](https://github.com/Spacegoose02/weather-scout) (wx.sgiu.net by default): temperature, conditions, "rain in 15 min", high and low, and the top alert, for where the car is. Tap it to refresh. |
+| **Sports scores** | A Sports module from [Stat Scraps](https://github.com/Spacegoose02/sports-tracker) (scores.sgiu.net by default): live games first, then each team's next game or latest result. Add your Stat Scraps key to show the teams you follow there, or pick teams in settings. |
 | **Theming** | Dark, light, follow-system, or **light by day and dark at night** (worked out from sunrise and sunset where the car is), and six accent colours. Full screen is on by default: the status bar, navigation bar and taskbar are hidden, and you swipe from an edge to show them. |
 | **Phone module** | Favourite and frequent contacts as big buttons that call with one tap, then everyone else, plus a keypad button that opens the dialer or the head unit's Bluetooth phone app. |
 | **Car data module** | Rpm, coolant temperature, fuel level and battery voltage from a Bluetooth ELM327 OBD-II adapter. Pick the paired adapter in **Settings → Car data**; it reconnects by itself when the ignition comes on. |
@@ -53,11 +55,22 @@ Third-party apps can't embed Waze or read its alerts, so the launcher shows Waze
 
 When the launcher is half of a split screen, it switches to a compact layout with the widgets only.
 
+## OpenStreetMap map box extras
+
+When the map box shows OpenStreetMap, **Settings → Map** has three extras:
+
+| | |
+|---|---|
+| **Speed cameras** | Speed, red light and average speed cameras from OpenStreetMap appear on the map. When one is ahead in your direction of travel, a banner shows how far it is (and the limit, when mapped), with a beep. Cameras within about 40 km are saved, so alerts work with no signal. |
+| **Offline maps** | Download a state or country from the free Mapsforge map server (or add a `.map` file from storage), and the map keeps working with no signal. Choose to use it only when there's no signal (default) or always. Places already seen on the online map are also kept, up to about 600 MB. |
+| **Traffic** | Live traffic colours and incident icons (crashes, roadworks, closures) from TomTom. Needs a free key from [developer.tomtom.com](https://developer.tomtom.com). |
+
 ## Config server (layouts and themes)
 
 The [`server/`](server) folder is a small Docker app with a web editor for making your own dashboard layouts
 and colour themes. Run it on a home server, then in the launcher go to **Settings → Config server**, enter its
-address, and tap **Save and sync**. There is a template for Unraid too. See [server/README.md](server/README.md).
+address, and tap **Save and sync**. After that, changes you save show up in the car within a second or two. You can
+share layouts and themes as a short code or a file. There is a template for Unraid too. See [server/README.md](server/README.md).
 
 ## Build it yourself
 

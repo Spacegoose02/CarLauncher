@@ -68,6 +68,8 @@ fun DashboardScreen(vm: DashboardViewModel) {
     val contactsAllowed by vm.contactsAllowed.collectAsStateWithLifecycle()
     val obdReading by vm.obdReading.collectAsStateWithLifecycle()
     val obdStatus by vm.obdStatus.collectAsStateWithLifecycle()
+    val weather by vm.weather.collectAsStateWithLifecycle()
+    val sports by vm.sports.collectAsStateWithLifecycle()
 
     // Wide window: widgets + map pane. Narrow (we're one half of split-screen): widgets only, Waze has the rest.
     val configuration = LocalConfiguration.current
@@ -113,6 +115,7 @@ fun DashboardScreen(vm: DashboardViewModel) {
                 mapApp = settings.mapApp,
                 onOpenMap = openMap,
                 modifier = paneModifier,
+                speedUnit = settings.speedUnit,
             )
             MapPaneContent.LIVE_MAP -> LiveMapPane(
                 position = position,
@@ -159,6 +162,8 @@ fun DashboardScreen(vm: DashboardViewModel) {
                 modifier = modifier,
             )
             WidgetType.CAR_DATA -> CarDataCard(obdReading, obdStatus, settings.speedUnit, vm::onBluetoothPermissionResult, modifier)
+            WidgetType.WEATHER -> WeatherCard(weather, vm::refreshWeather, modifier)
+            WidgetType.SPORTS -> SportsCard(sports, vm.graph.images, vm::refreshSports, modifier)
         }
     }
 
@@ -250,6 +255,11 @@ fun DashboardScreen(vm: DashboardViewModel) {
                 pairedObdDevices = vm::pairedObdDevices,
                 onSetObdAdapter = vm::setObdAdapter,
                 onBluetoothPermissionResult = vm::onBluetoothPermissionResult,
+                weather = weather,
+                sports = sports,
+                onSearchTeams = vm::searchTeams,
+                onAddTeam = vm::addSportsTeam,
+                onRemoveTeam = vm::removeSportsTeam,
                 onClose = { vm.settingsOpen = false },
             )
         }
