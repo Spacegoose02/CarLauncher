@@ -61,6 +61,9 @@ import com.spacegoose.carlauncher.layout.DashboardLayout
 import com.spacegoose.carlauncher.settings.MediaSourcePreference
 import com.spacegoose.carlauncher.settings.ThemeMode
 import com.spacegoose.carlauncher.vehicle.SpeedUnit
+import com.spacegoose.carlauncher.integrations.sports.SportsState
+import com.spacegoose.carlauncher.integrations.sports.TeamPick
+import com.spacegoose.carlauncher.integrations.weather.WeatherState
 
 @Composable
 fun SettingsPanel(
@@ -75,6 +78,11 @@ fun SettingsPanel(
     wavelengthWidgetAvailable: Boolean,
     onAddWavelengthWidget: () -> Unit,
     onRemoveWavelengthWidget: () -> Unit,
+    weather: WeatherState,
+    sports: SportsState,
+    onSearchTeams: suspend (String) -> Result<List<TeamPick>>,
+    onAddTeam: (String) -> Unit,
+    onRemoveTeam: (String) -> Unit,
     onClose: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -153,6 +161,12 @@ fun SettingsPanel(
                 Section("Speed")
                 Choice("Units", SpeedUnit.entries, settings.speedUnit, { it.label }) { v -> onChange { it.copy(speedUnit = v) } }
 
+                Section("Weather")
+                WeatherSettings(settings, weather, onChange)
+
+                Section("Sports scores")
+                SportsSettings(settings, sports, onChange, onSearchTeams, onAddTeam, onRemoveTeam)
+
                 Section("Look")
                 val serverTheme = settings.themeId.takeIf { it.isNotEmpty() }?.let(serverConfig::theme)
                 if (serverConfig.themes.isNotEmpty()) {
@@ -216,14 +230,14 @@ private fun ConfigServer(
 }
 
 @Composable
-private fun Section(title: String) {
+internal fun Section(title: String) {
     Spacer(Modifier.height(20.dp))
     Text(title, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
     HorizontalDivider(Modifier.padding(vertical = 8.dp))
 }
 
 @Composable
-private fun Hint(text: String) {
+internal fun Hint(text: String) {
     Text(
         text,
         style = MaterialTheme.typography.bodyMedium,
@@ -233,7 +247,7 @@ private fun Hint(text: String) {
 }
 
 @Composable
-private fun Action(label: String, onClick: () -> Unit) {
+internal fun Action(label: String, onClick: () -> Unit) {
     FilledTonalButton(onClick = onClick, modifier = Modifier.padding(vertical = 6.dp).heightIn(min = 56.dp)) {
         Text(label)
     }
@@ -256,7 +270,7 @@ private fun Stepper(label: String, value: String, onSmaller: () -> Unit, onBigge
 }
 
 @Composable
-private fun Toggle(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+internal fun Toggle(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = TouchTarget).clickable { onChange(!checked) },
         verticalAlignment = Alignment.CenterVertically,

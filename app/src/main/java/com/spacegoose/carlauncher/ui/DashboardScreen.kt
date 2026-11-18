@@ -60,6 +60,8 @@ fun DashboardScreen(vm: DashboardViewModel) {
     val serverConfig by vm.serverConfig.collectAsStateWithLifecycle()
     val configStatus by vm.configStatus.collectAsStateWithLifecycle()
     val configSyncing by vm.configSyncing.collectAsStateWithLifecycle()
+    val weather by vm.weather.collectAsStateWithLifecycle()
+    val sports by vm.sports.collectAsStateWithLifecycle()
 
     // Wide window: widgets + map pane. Narrow (we're one half of split-screen): widgets only, Waze has the rest.
     val wide = LocalConfiguration.current.screenWidthDp >= 600
@@ -134,6 +136,8 @@ fun DashboardScreen(vm: DashboardViewModel) {
             WidgetType.WAVELENGTH_WIDGET ->
                 WavelengthWidgetCard(vm.graph.wavelengthWidget, settings.wavelengthWidgetId, modifier)
             WidgetType.MAP -> MapModule(modifier)
+            WidgetType.WEATHER -> WeatherCard(weather, vm::refreshWeather, modifier)
+            WidgetType.SPORTS -> SportsCard(sports, vm.graph.images, vm::refreshSports, modifier)
         }
     }
 
@@ -215,6 +219,11 @@ fun DashboardScreen(vm: DashboardViewModel) {
                 wavelengthWidgetAvailable = remember(wavelengthInstalled) { vm.wavelengthWidgetAvailable() },
                 onAddWavelengthWidget = addWidget,
                 onRemoveWavelengthWidget = vm::removeWavelengthWidget,
+                weather = weather,
+                sports = sports,
+                onSearchTeams = vm::searchTeams,
+                onAddTeam = vm::addSportsTeam,
+                onRemoveTeam = vm::removeSportsTeam,
                 onClose = { vm.settingsOpen = false },
             )
         }

@@ -6,7 +6,7 @@ import kotlinx.serialization.json.Json
 
 /** The modules the dashboard can show. New modules (OBD2 gauges, weather, ...) get a new entry here. */
 @Serializable
-enum class WidgetType { CLOCK, SPEEDOMETER, MEDIA, WAVELENGTH_WIDGET, MAP }
+enum class WidgetType { CLOCK, SPEEDOMETER, MEDIA, WAVELENGTH_WIDGET, MAP, WEATHER, SPORTS }
 
 @Serializable
 data class WidgetRow(val widgets: List<WidgetType>, val weight: Float = 1f)
@@ -22,7 +22,9 @@ data class LayoutColumn(val rows: List<WidgetRow>, val weight: Float = 1f)
 @Serializable
 data class DashboardLayout(val id: String, val name: String, val columns: List<LayoutColumn>) {
 
-    val hasMap: Boolean get() = columns.any { c -> c.rows.any { WidgetType.MAP in it.widgets } }
+    val hasMap: Boolean get() = contains(WidgetType.MAP)
+
+    fun contains(type: WidgetType): Boolean = columns.any { c -> c.rows.any { type in it.widgets } }
 
     /** True when the map sits in the first (leftmost) column. */
     val mapOnLeft: Boolean get() = columns.firstOrNull()?.rows?.any { WidgetType.MAP in it.widgets } == true
@@ -76,7 +78,23 @@ data class DashboardLayout(val id: String, val name: String, val columns: List<L
             ),
         )
 
-        val BuiltIn = listOf(MapRight, MapLeft, NoMap)
+        /** Map on the right, with weather and your teams' scores beside the clock and speed. */
+        val MapWithInfo = DashboardLayout(
+            "map_info", "Map with weather and scores",
+            listOf(
+                LayoutColumn(
+                    listOf(
+                        WidgetRow(listOf(WidgetType.CLOCK, WidgetType.SPEEDOMETER), weight = 1f),
+                        WidgetRow(listOf(WidgetType.WEATHER, WidgetType.SPORTS), weight = 1.2f),
+                        WidgetRow(listOf(WidgetType.MEDIA), weight = 1.2f),
+                    ),
+                    weight = 0.42f,
+                ),
+                Map,
+            ),
+        )
+
+        val BuiltIn = listOf(MapRight, MapLeft, NoMap, MapWithInfo)
         const val DEFAULT_ID = "map_right"
 
         fun byId(id: String): DashboardLayout = BuiltIn.firstOrNull { it.id == id } ?: MapRight

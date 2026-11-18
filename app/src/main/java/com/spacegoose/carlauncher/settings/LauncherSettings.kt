@@ -63,9 +63,25 @@ data class LauncherSettings(
     val wavelengthWidgetId: Int = NO_WIDGET,
     /** Dock apps as flattened component names; null until the user changes the dock (defaults apply). */
     val dockApps: List<String>? = null,
+    /** Weather Scout (github.com/Spacegoose02/weather-scout) for the weather module. */
+    val weatherServerUrl: String = DEFAULT_WEATHER_SERVER,
+    /** A Weather Scout app key ("wsk_..."), only needed when that server requires sign-in. */
+    val weatherKey: String = "",
+    /** Weather where the car is (GPS) rather than the server's home location. */
+    val weatherFollowsCar: Boolean = true,
+    /** Stat Scraps (github.com/Spacegoose02/sports-tracker) for the sports module. */
+    val sportsServerUrl: String = DEFAULT_SPORTS_SERVER,
+    /** The Stat Scraps account's feed key: the module then shows the teams followed on the site. */
+    val sportsKey: String = "",
+    /** Without a key: teams picked in the launcher, as "sport:teamId" (e.g. "cfb:259"), or a sport like "f1". */
+    val sportsTeams: List<String> = DEFAULT_SPORTS_TEAMS,
 ) {
     companion object {
         const val NO_WIDGET = -1
         const val MAX_DOCK_APPS = 8
+        const val DEFAULT_WEATHER_SERVER = "https://wx.sgiu.net"
+        const val DEFAULT_SPORTS_SERVER = "https://scores.sgiu.net"
+        /** Virginia Tech football, Stat Scraps' own default team. */
+        val DEFAULT_SPORTS_TEAMS = listOf("cfb:259")
     }
 }

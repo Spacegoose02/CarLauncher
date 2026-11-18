@@ -14,6 +14,8 @@ and a dock of your car apps.
 | **Other music apps** | With notification access granted, the card also follows Spotify, YouTube Music, podcasts and so on. Choose "Wavelength first", "Wavelength only" or "Whatever is playing". |
 | **GPS speedometer** | Big digits in mph or km/h. It works out speed from the last two fixes when the GPS module doesn't report it. |
 | **Dock and app drawer** | Long-press an app in the drawer to add it to the dock, and long-press a dock icon to remove it. The drawer has search. |
+| **Weather** | A Weather module from your [Weather Scout](https://github.com/Spacegoose02/weather-scout) (wx.sgiu.net by default): temperature, conditions, "rain in 15 min", high and low, and the top alert, for where the car is. Tap it to refresh. |
+| **Sports scores** | A Sports module from [Stat Scraps](https://github.com/Spacegoose02/sports-tracker) (scores.sgiu.net by default): live games first, then each team's next game or latest result. Add your Stat Scraps key to show the teams you follow there, or pick teams in settings. |
 | **Theming** | Dark, light or follow-system, and six accent colours. Full screen is on by default: the status bar, navigation bar and taskbar are hidden, and you swipe from an edge to show them. |
 
 Everything is sized for driving: touch targets are at least 64dp and the text is large.
