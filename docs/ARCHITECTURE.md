@@ -41,8 +41,11 @@ Wavelength also has a `NowPlayingWidget` app widget. `WavelengthWidgetHost` host
 
 - **OBD2**: implement `VehicleDataSource` (for example `Elm327Source`) and add fields such as rpm
   and coolant to the reading. Swap or combine it in `AppGraph`. Add `WidgetType` entries for new gauges.
-- **Layout editor**: persist a `DashboardLayout` (rows of `WidgetType` with weights) in the settings store
-  instead of `DashboardLayout.Default`. `DashboardScreen` already renders whatever layout it is given.
+- **Layouts are modular**: a `DashboardLayout` is columns of rows of `WidgetType` modules (the map is
+  just the `MAP` module), with the dock along the bottom. It serialises to JSON (`toJson`/`fromJson`),
+  so a layout editor, shared layout files, or a config server (for example a small Docker service that
+  builds layouts and themes) only need to hand the launcher JSON. Built-in layouts: map right, map left,
+  no map. `DashboardScreen` renders whatever layout it is given.
 - **Day/night themes**: add `ThemeMode.AUTO_SUN` and compute it from location and time in `CarLauncherTheme`.
 - **Auto-actions**: an `automation/` package with a foreground service or receivers for Bluetooth
   `ACTION_ACL_CONNECTED` and power connected. Its actions call `MapLauncher` and `MediaRepository`.

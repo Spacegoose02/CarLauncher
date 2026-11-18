@@ -4,6 +4,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
@@ -56,6 +57,10 @@ dependencies {
     // MediaBrowserCompat / MediaControllerCompat: talks to Wavelength's MediaBrowserService
     implementation("androidx.media:media:1.7.0")
     implementation("androidx.webkit:webkit:1.12.1")
+    // Layouts (and later themes) as portable JSON, so they can come from a file or a config server
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    // OpenStreetMap map in the map box, drawn by the launcher itself
+    implementation("org.osmdroid:osmdroid-android:6.1.20")
     // Lets the launcher ask for a freeform window (ActivityOptions.setLaunchWindowingMode is a hidden API)
     implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.1")
 

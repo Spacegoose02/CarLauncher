@@ -44,6 +44,7 @@ class SettingsRepository(context: Context) {
         val MEDIA_SOURCE = stringPreferencesKey("media_source")
         val WL_WIDGET = intPreferencesKey("wavelength_widget_id")
         val DOCK = stringPreferencesKey("dock_apps")
+        val LAYOUT = stringPreferencesKey("layout_id")
     }
 
     private fun read(p: Preferences): LauncherSettings {
@@ -63,6 +64,7 @@ class SettingsRepository(context: Context) {
             hideSystemBars = p[Keys.HIDE_BARS] ?: d.hideSystemBars,
             mediaSource = enumOr(p[Keys.MEDIA_SOURCE], d.mediaSource),
             wavelengthWidgetId = p[Keys.WL_WIDGET] ?: d.wavelengthWidgetId,
+            layoutId = p[Keys.LAYOUT] ?: d.layoutId,
             dockApps = p[Keys.DOCK]?.split('\n')?.filter { it.isNotBlank() },
         )
     }
@@ -82,6 +84,7 @@ class SettingsRepository(context: Context) {
         p[Keys.HIDE_BARS] = s.hideSystemBars
         p[Keys.MEDIA_SOURCE] = s.mediaSource.name
         p[Keys.WL_WIDGET] = s.wavelengthWidgetId
+        p[Keys.LAYOUT] = s.layoutId
         val dock = s.dockApps
         if (dock == null) p.remove(Keys.DOCK) else p[Keys.DOCK] = dock.joinToString("\n")
     }

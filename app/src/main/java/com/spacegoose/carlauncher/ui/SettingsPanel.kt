@@ -46,6 +46,7 @@ import com.spacegoose.carlauncher.settings.AccentColor
 import com.spacegoose.carlauncher.settings.LauncherSettings
 import com.spacegoose.carlauncher.settings.LiveMapSource
 import com.spacegoose.carlauncher.settings.MapPaneContent
+import com.spacegoose.carlauncher.layout.DashboardLayout
 import com.spacegoose.carlauncher.settings.MediaSourcePreference
 import com.spacegoose.carlauncher.settings.ThemeMode
 import com.spacegoose.carlauncher.vehicle.SpeedUnit
@@ -72,6 +73,10 @@ fun SettingsPanel(
                 }
             }
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                Section("Layout")
+                Choice("Screen layout", DashboardLayout.BuiltIn, DashboardLayout.byId(settings.layoutId), { it.name }) { v ->
+                    onChange { it.copy(layoutId = v.id) }
+                }
                 Section("Map")
                 Choice("Map app", MapApp.entries, settings.mapApp, { it.label }) { v -> onChange { it.copy(mapApp = v) } }
                 Choice("The map box shows", MapPaneContent.entries, settings.mapPaneContent, { it.label }) { v ->

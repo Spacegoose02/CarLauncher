@@ -20,11 +20,13 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -73,6 +75,44 @@ fun DashboardScreen(vm: DashboardViewModel) {
     }
     val openMap: () -> Unit = { (activity as? ComponentActivity)?.let(vm::openMap) }
 
+    // The map module: an OpenStreetMap map, the Waze Live Map, or the button that opens the map app over it.
+    @Composable
+    fun MapModule(modifier: Modifier) {
+        val paneModifier = modifier.onGloballyPositioned { coords ->
+            val r = coords.boundsInWindow()
+            val origin = IntArray(2)
+            activity?.window?.decorView?.getLocationOnScreen(origin)
+            vm.mapPaneBounds = Rect(
+                r.left.toInt() + origin[0], r.top.toInt() + origin[1],
+                r.right.toInt() + origin[0], r.bottom.toInt() + origin[1],
+            )
+        }
+        when (settings.mapPaneContent) {
+            MapPaneContent.OPEN_MAP -> OpenMapPane(
+                position = position,
+                locationAllowed = speedStatus != SourceStatus.NEEDS_PERMISSION,
+                mapApp = settings.mapApp,
+                onOpenMap = openMap,
+                modifier = paneModifier,
+            )
+            MapPaneContent.LIVE_MAP -> LiveMapPane(
+                position = position,
+                locationAllowed = speedStatus != SourceStatus.NEEDS_PERMISSION,
+                mapApp = settings.mapApp,
+                source = settings.liveMapSource,
+                onOpenMap = openMap,
+                modifier = paneModifier,
+            )
+            MapPaneContent.BUTTON -> MapPane(
+                mapApp = settings.mapApp,
+                mode = settings.mapLaunchMode,
+                status = vm.mapStatus,
+                onOpenMap = openMap,
+                modifier = paneModifier,
+            )
+        }
+    }
+
     @Composable
     fun Widget(type: WidgetType, modifier: Modifier) {
         when (type) {
@@ -90,15 +130,21 @@ fun DashboardScreen(vm: DashboardViewModel) {
             )
             WidgetType.WAVELENGTH_WIDGET ->
                 WavelengthWidgetCard(vm.graph.wavelengthWidget, settings.wavelengthWidgetId, modifier)
+            WidgetType.MAP -> MapModule(modifier)
         }
     }
 
     val widgetBound = remember(settings.wavelengthWidgetId) {
         vm.graph.wavelengthWidget.isBound(settings.wavelengthWidgetId)
     }
-    val rows = DashboardLayout.Default.rows
-        .map { row -> row.copy(widgets = row.widgets.filter { it != WidgetType.WAVELENGTH_WIDGET || widgetBound }) }
-        .filter { it.widgets.isNotEmpty() }
+    // The chosen layout, minus modules that can't show: the Wavelength widget until it's added, and the map
+    // when the launcher is only half the screen (Waze has the other half).
+    val layout = remember(settings.layoutId, widgetBound, wide) {
+        DashboardLayout.byId(settings.layoutId)
+            .without { (it == WidgetType.WAVELENGTH_WIDGET && !widgetBound) || (it == WidgetType.MAP && !wide) }
+            .let { if (wide) it else it.singleColumn() }
+    }
+    LaunchedEffect(layout.hasMap) { if (!layout.hasMap) vm.mapPaneBounds = null }
 
     Box(
         Modifier
@@ -106,68 +152,42 @@ fun DashboardScreen(vm: DashboardViewModel) {
             .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.safeDrawing)
     ) {
-        // Wide: widgets and dock on the left, a full-height map box on the right (Samsung won't make a
-        // floating window shorter than the app's minimum height, so the box gets all the height there is).
-        // Narrow (we're one half of split-screen): widgets and dock only.
-        Row(Modifier.fillMaxSize().padding(Gap), horizontalArrangement = Arrangement.spacedBy(Gap)) {
-            Column(
-                Modifier.weight(if (wide) 0.42f else 1f).fillMaxHeight(),
-                verticalArrangement = Arrangement.spacedBy(Gap),
-            ) {
-                rows.forEach { row ->
-                    Row(
-                        Modifier.weight(row.weight).fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(Gap),
+        Column(Modifier.fillMaxSize().padding(Gap), verticalArrangement = Arrangement.spacedBy(Gap)) {
+            Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Gap)) {
+                layout.columns.forEach { column ->
+                    Column(
+                        Modifier.weight(column.weight).fillMaxHeight(),
+                        verticalArrangement = Arrangement.spacedBy(Gap),
                     ) {
-                        row.widgets.forEach { Widget(it, Modifier.weight(1f).fillMaxHeight()) }
+                        column.rows.forEach { row ->
+                            Row(
+                                Modifier.weight(row.weight).fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(Gap),
+                            ) {
+                                row.widgets.forEach { Widget(it, Modifier.weight(1f).fillMaxHeight()) }
+                            }
+                        }
                     }
                 }
-                Dock(
-                    apps = dock,
-                    onOpenDrawer = { vm.drawerOpen = true },
-                    onOpenMap = openMap,
-                    onOpenSettings = { vm.settingsOpen = true },
-                    onLaunch = { vm.launchApp(context, it) },
-                    onRemove = vm::removeFromDock,
-                    modifier = Modifier.fillMaxWidth().height(96.dp),
-                )
             }
-            if (wide) {
-                val paneModifier = Modifier
-                    .weight(0.58f)
-                    .fillMaxHeight()
-                    .onGloballyPositioned { coords ->
-                        val r = coords.boundsInWindow()
-                        val origin = IntArray(2)
-                        activity?.window?.decorView?.getLocationOnScreen(origin)
-                        vm.mapPaneBounds = Rect(
-                            r.left.toInt() + origin[0], r.top.toInt() + origin[1],
-                            r.right.toInt() + origin[0], r.bottom.toInt() + origin[1],
-                        )
-                    }
-                if (settings.mapPaneContent == MapPaneContent.LIVE_MAP) {
-                    LiveMapPane(
-                        position = position,
-                        locationAllowed = speedStatus != SourceStatus.NEEDS_PERMISSION,
-                        mapApp = settings.mapApp,
-                        source = settings.liveMapSource,
-                        onOpenMap = openMap,
-                        modifier = paneModifier,
-                    )
-                } else {
-                    MapPane(
-                        mapApp = settings.mapApp,
-                        mode = settings.mapLaunchMode,
-                        status = vm.mapStatus,
-                        onOpenMap = openMap,
-                        modifier = paneModifier,
-                    )
-                }
-            }
+            Dock(
+                apps = dock,
+                onOpenDrawer = { vm.drawerOpen = true },
+                onOpenMap = openMap,
+                onOpenSettings = { vm.settingsOpen = true },
+                onLaunch = { vm.launchApp(context, it) },
+                onRemove = vm::removeFromDock,
+                modifier = Modifier.fillMaxWidth().height(96.dp),
+            )
         }
 
         // With the map floating in its box, overlays stay in the widget column so the map never covers them.
-        val overlayModifier = if (wide) Modifier.fillMaxHeight().fillMaxWidth(OverlayWidthFraction) else Modifier.fillMaxSize()
+        // Overlays open on the side away from the map.
+        val overlayModifier = when {
+            !wide -> Modifier.fillMaxSize()
+            layout.mapOnLeft -> Modifier.align(Alignment.TopEnd).fillMaxHeight().fillMaxWidth(OverlayWidthFraction)
+            else -> Modifier.fillMaxHeight().fillMaxWidth(OverlayWidthFraction)
+        }
         if (vm.drawerOpen) Box(overlayModifier) {
             AppDrawer(
                 apps = apps,
