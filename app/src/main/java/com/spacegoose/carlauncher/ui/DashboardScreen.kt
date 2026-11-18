@@ -57,6 +57,9 @@ fun DashboardScreen(vm: DashboardViewModel) {
     val speed by vm.speed.collectAsStateWithLifecycle()
     val speedStatus by vm.speedStatus.collectAsStateWithLifecycle()
     val position by vm.position.collectAsStateWithLifecycle()
+    val serverConfig by vm.serverConfig.collectAsStateWithLifecycle()
+    val configStatus by vm.configStatus.collectAsStateWithLifecycle()
+    val configSyncing by vm.configSyncing.collectAsStateWithLifecycle()
 
     // Wide window: widgets + map pane. Narrow (we're one half of split-screen): widgets only, Waze has the rest.
     val wide = LocalConfiguration.current.screenWidthDp >= 600
@@ -139,8 +142,8 @@ fun DashboardScreen(vm: DashboardViewModel) {
     }
     // The chosen layout, minus modules that can't show: the Wavelength widget until it's added, and the map
     // when the launcher is only half the screen (Waze has the other half).
-    val layout = remember(settings.layoutId, widgetBound, wide) {
-        DashboardLayout.byId(settings.layoutId)
+    val layout = remember(settings.layoutId, serverConfig, widgetBound, wide) {
+        DashboardLayout.resolve(settings.layoutId, serverConfig.layouts)
             .without { (it == WidgetType.WAVELENGTH_WIDGET && !widgetBound) || (it == WidgetType.MAP && !wide) }
             .let { if (wide) it else it.singleColumn() }
     }
@@ -203,6 +206,11 @@ fun DashboardScreen(vm: DashboardViewModel) {
             SettingsPanel(
                 settings = settings,
                 onChange = vm::updateSettings,
+                serverConfig = serverConfig,
+                configStatus = configStatus,
+                configSyncing = configSyncing,
+                onSetConfigServer = vm::setConfigServer,
+                onSyncConfig = vm::syncConfig,
                 wavelengthInstalled = wavelengthInstalled,
                 wavelengthWidgetAvailable = remember(wavelengthInstalled) { vm.wavelengthWidgetAvailable() },
                 onAddWavelengthWidget = addWidget,

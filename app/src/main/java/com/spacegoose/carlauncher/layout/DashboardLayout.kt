@@ -80,5 +80,12 @@ data class DashboardLayout(val id: String, val name: String, val columns: List<L
         const val DEFAULT_ID = "map_right"
 
         fun byId(id: String): DashboardLayout = BuiltIn.firstOrNull { it.id == id } ?: MapRight
+
+        /** The layouts to offer: the server's first, then built-ins it doesn't replace (same id wins from the server). */
+        fun available(fromServer: List<DashboardLayout>): List<DashboardLayout> =
+            fromServer + BuiltIn.filter { b -> fromServer.none { it.id == b.id } }
+
+        fun resolve(id: String, fromServer: List<DashboardLayout>): DashboardLayout =
+            available(fromServer).firstOrNull { it.id == id } ?: byId(id)
     }
 }

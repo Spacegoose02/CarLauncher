@@ -33,7 +33,9 @@ class DashboardActivity : ComponentActivity() {
 
         setContent {
             val settings by vm.settings.collectAsStateWithLifecycle()
-            CarLauncherTheme(settings) {
+            val serverConfig by vm.serverConfig.collectAsStateWithLifecycle()
+            val serverTheme = settings.themeId.takeIf { it.isNotEmpty() }?.let(serverConfig::theme)
+            CarLauncherTheme(settings, serverTheme) {
                 DashboardScreen(vm)
             }
         }

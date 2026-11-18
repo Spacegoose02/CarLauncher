@@ -1,0 +1,14 @@
+{
+  "id": "synthwave",
+  "name": "Synthwave",
+  "dark": true,
+  "colors": {
+    "accent": "#FF2BD6",
+    "onAccent": "#000000",
+    "background": "#120724",
+    "surface": "#1E0F3A",
+    "surfaceVariant": "#2C1652",
+    "text": "#F8E9FF",
+    "textSecondary": "#B9A2D8"
+  }
+}

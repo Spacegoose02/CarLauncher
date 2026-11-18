@@ -1,0 +1,20 @@
+{
+  "id": "no_map",
+  "name": "No map",
+  "columns": [
+    {
+      "rows": [
+        { "widgets": ["CLOCK"], "weight": 1.0 },
+        { "widgets": ["SPEEDOMETER"], "weight": 1.0 }
+      ],
+      "weight": 0.32
+    },
+    {
+      "rows": [
+        { "widgets": ["MEDIA"], "weight": 1.6 },
+        { "widgets": ["WAVELENGTH_WIDGET"], "weight": 0.5 }
+      ],
+      "weight": 0.68
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "midnight",
+  "name": "Midnight",
+  "dark": true,
+  "colors": {
+    "accent": "#4FC3F7",
+    "onAccent": "#000000",
+    "background": "#0B0E14",
+    "surface": "#151A23",
+    "surfaceVariant": "#1F2632",
+    "text": "#ECEFF4",
+    "textSecondary": "#A9B1C0"
+  }
+}

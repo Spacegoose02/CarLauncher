@@ -1,0 +1,15 @@
+{
+  "id": "map_left",
+  "name": "Map on the left",
+  "columns": [
+    { "rows": [{ "widgets": ["MAP"], "weight": 1.0 }], "weight": 0.58 },
+    {
+      "rows": [
+        { "widgets": ["CLOCK", "SPEEDOMETER"], "weight": 1.0 },
+        { "widgets": ["MEDIA"], "weight": 1.4 },
+        { "widgets": ["WAVELENGTH_WIDGET"], "weight": 0.55 }
+      ],
+      "weight": 0.42
+    }
+  ]
+}

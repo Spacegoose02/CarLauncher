@@ -10,6 +10,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.spacegoose.carlauncher.config.ServerConfig
+import com.spacegoose.carlauncher.config.ThemeDefinition
 import com.spacegoose.carlauncher.settings.LauncherSettings
 import com.spacegoose.carlauncher.settings.ThemeMode
 
@@ -27,8 +29,13 @@ private val CarTypography = Typography().let { t ->
     )
 }
 
+/** [serverTheme], when given, is a theme from the config server and replaces the built-in colours. */
 @Composable
-fun CarLauncherTheme(settings: LauncherSettings, content: @Composable () -> Unit) {
+fun CarLauncherTheme(settings: LauncherSettings, serverTheme: ThemeDefinition? = null, content: @Composable () -> Unit) {
+    if (serverTheme != null) {
+        MaterialTheme(colorScheme = serverTheme.colorScheme(), typography = CarTypography, content = content)
+        return
+    }
     val dark = when (settings.themeMode) {
         ThemeMode.DARK -> true
         ThemeMode.LIGHT -> false
@@ -61,4 +68,30 @@ fun CarLauncherTheme(settings: LauncherSettings, content: @Composable () -> Unit
         )
     }
     MaterialTheme(colorScheme = scheme, typography = CarTypography, content = content)
+}
+
+private fun ThemeDefinition.colorScheme() = with(colors) {
+    fun c(hex: String) = Color(ServerConfig.parseColor(hex) ?: 0xFFFF00FF)
+    val accent = c(this.accent)
+    if (dark) {
+        darkColorScheme(
+            primary = accent, onPrimary = c(onAccent), secondary = accent, onSecondary = c(onAccent),
+            background = c(background), onBackground = c(text),
+            surface = c(surface), onSurface = c(text),
+            surfaceVariant = c(surfaceVariant), onSurfaceVariant = c(textSecondary),
+            surfaceContainer = c(surface), surfaceContainerHigh = c(surfaceVariant), surfaceContainerHighest = c(surfaceVariant),
+            secondaryContainer = c(surfaceVariant), onSecondaryContainer = c(text),
+            outline = c(textSecondary),
+        )
+    } else {
+        lightColorScheme(
+            primary = accent, onPrimary = c(onAccent), secondary = accent, onSecondary = c(onAccent),
+            background = c(background), onBackground = c(text),
+            surface = c(surface), onSurface = c(text),
+            surfaceVariant = c(surfaceVariant), onSurfaceVariant = c(textSecondary),
+            surfaceContainer = c(surface), surfaceContainerHigh = c(surfaceVariant), surfaceContainerHighest = c(surfaceVariant),
+            secondaryContainer = c(surfaceVariant), onSecondaryContainer = c(text),
+            outline = c(textSecondary),
+        )
+    }
 }
