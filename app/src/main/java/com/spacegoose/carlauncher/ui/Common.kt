@@ -12,6 +12,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -41,15 +46,36 @@ val LocalCarSizes = staticCompositionLocalOf { CarSizes.Normal }
 val TouchTarget: Dp
     @Composable @ReadOnlyComposable get() = LocalCarSizes.current.touchTarget
 
+/**
+ * A dashboard card. [glow], when set, washes the card with that colour from the top-left corner (the media
+ * card uses the album art's colour), fading into the card's own surface.
+ */
 @Composable
-fun DashCard(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+fun DashCard(
+    modifier: Modifier = Modifier,
+    glow: Color = Color.Unspecified,
+    content: @Composable BoxScope.() -> Unit,
+) {
     Surface(
         modifier = modifier,
         shape = CardShape,
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 2.dp,
     ) {
-        Box(Modifier.padding(20.dp), content = content)
+        val wash = if (glow.isSpecified) {
+            Modifier.drawBehind {
+                drawRect(
+                    Brush.linearGradient(
+                        0f to glow.copy(alpha = 0.34f),
+                        0.55f to glow.copy(alpha = 0.10f),
+                        1f to Color.Transparent,
+                        start = Offset.Zero,
+                        end = Offset(size.width, size.height),
+                    )
+                )
+            }
+        } else Modifier
+        Box(wash.padding(20.dp), content = content)
     }
 }
 
