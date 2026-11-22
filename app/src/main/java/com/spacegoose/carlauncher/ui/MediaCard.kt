@@ -2,6 +2,18 @@ package com.spacegoose.carlauncher.ui
 
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -28,12 +40,17 @@ import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -55,7 +72,21 @@ fun MediaCard(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    DashCard(modifier) {
+    // The card takes its colour from the album art, and eases into the next song's colour.
+    val artTint = rememberArtTint(nowPlaying?.art)
+    val accent by animateColorAsState(
+        artTint ?: MaterialTheme.colorScheme.primary,
+        animationSpec = tween(ColorFadeMs),
+        label = "media accent",
+    )
+    val playing = nowPlaying?.isPlaying == true
+    // Paused art sits back a little, so the state reads from across the car.
+    val artScale by animateFloatAsState(
+        if (playing || nowPlaying == null) 1f else 0.9f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "art scale",
+    )
+    DashCard(modifier, glow = if (nowPlaying != null) accent else Color.Unspecified) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             // Everything scales with the card, so nothing is cut off in split-screen or on small screens.
             val artSize = minOf(maxHeight, maxWidth * 0.38f)
@@ -71,26 +102,34 @@ fun MediaCard(
                     Box(
                         Modifier
                             .size(artSize)
+                            .graphicsLayer {
+                                scaleX = artScale
+                                scaleY = artScale
+                            }
+                            .shadow(if (playing) 18.dp else 4.dp, RoundedCornerShape(16.dp), ambientColor = accent, spotColor = accent)
                             .clip(RoundedCornerShape(16.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                             .clickable(onClick = onOpenApp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        val art = nowPlaying?.art
-                        if (art != null) {
-                            Image(
-                                art.asImageBitmap(),
-                                contentDescription = "Album art, opens the music app",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        } else {
-                            Icon(
-                                Icons.Filled.MusicNote,
-                                contentDescription = "Open the music app",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(artSize * 0.4f),
-                            )
+                        Crossfade(nowPlaying?.art, animationSpec = tween(ColorFadeMs), label = "album art") { art ->
+                            if (art != null) {
+                                Image(
+                                    art.asImageBitmap(),
+                                    contentDescription = "Album art, opens the music app",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            } else {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Filled.MusicNote,
+                                        contentDescription = "Open the music app",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(artSize * 0.4f),
+                                    )
+                                }
+                            }
                         }
                     }
                     Spacer(Modifier.width(16.dp))
@@ -104,18 +143,28 @@ fun MediaCard(
                         fontSize = label,
                         lineHeight = label,
                         fontWeight = FontWeight.Bold,
-                        color = if (nowPlaying?.isWavelength ?: wavelengthInstalled) MaterialTheme.colorScheme.primary
+                        color = if (nowPlaying != null || wavelengthInstalled) accent
                         else MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                     )
-                    Text(
+                    // A new song slides in from below; the old one slides out the top.
+                    AnimatedContent(
                         nowPlaying?.title ?: "Nothing playing",
-                        fontSize = title,
-                        lineHeight = title * 1.15f,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE),
-                    )
+                        transitionSpec = {
+                            (slideInVertically(tween(SlideMs)) { it / 2 } + fadeIn(tween(SlideMs))) togetherWith
+                                (slideOutVertically(tween(SlideMs)) { -it / 2 } + fadeOut(tween(SlideMs / 2)))
+                        },
+                        label = "song title",
+                    ) { songTitle ->
+                        Text(
+                            songTitle,
+                            fontSize = title,
+                            lineHeight = title * 1.15f,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE),
+                        )
+                    }
                     val sub = nowPlaying?.artist?.ifBlank { null } ?: when {
                         nowPlaying != null -> null
                         wavelengthInstalled -> "Tap play to open Wavelength"
@@ -143,13 +192,15 @@ fun MediaCard(
                             onClick = { if (nowPlaying == null) onOpenApp() else onPlayPause() },
                             modifier = Modifier.size(controlSize * 1.15f),
                             shape = CircleShape,
+                            colors = IconButtonDefaults.filledIconButtonColors(containerColor = accent, contentColor = Color.Black),
                         ) {
-                            val playing = nowPlaying?.isPlaying == true
-                            Icon(
-                                if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                                if (playing) "Pause" else "Play",
-                                Modifier.size(controlSize * 0.68f),
-                            )
+                            Crossfade(playing, animationSpec = tween(200), label = "play pause") { isPlaying ->
+                                Icon(
+                                    if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                                    if (isPlaying) "Pause" else "Play",
+                                    Modifier.size(controlSize * 0.68f),
+                                )
+                            }
                         }
                         IconButton(onClick = onNext, enabled = nowPlaying != null, modifier = Modifier.size(controlSize)) {
                             Icon(Icons.Filled.SkipNext, "Next", Modifier.size(controlSize * 0.62f))
@@ -175,6 +226,9 @@ fun MediaCard(
         }
     }
 }
+
+private const val ColorFadeMs = 600
+private const val SlideMs = 350
 
 private fun sourceLabel(nowPlaying: NowPlaying?, wavelengthInstalled: Boolean): String = when {
     nowPlaying != null -> nowPlaying.appLabel

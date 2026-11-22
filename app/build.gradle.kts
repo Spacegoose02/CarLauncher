@@ -56,6 +56,7 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     // MediaBrowserCompat / MediaControllerCompat: talks to Wavelength's MediaBrowserService
     implementation("androidx.media:media:1.7.0")
+    implementation("androidx.palette:palette-ktx:1.0.0")
     implementation("androidx.webkit:webkit:1.12.1")
     // Layouts (and later themes) as portable JSON, so they can come from a file or a config server
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
