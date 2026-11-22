@@ -27,6 +27,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -69,11 +71,13 @@ fun MediaCard(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onOpenApp: () -> Unit,
+    onOpenNowPlaying: () -> Unit,
+    /** The album art's colour (see [rememberArtTint]), or null to use the theme accent. */
+    artTint: Color?,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     // The card takes its colour from the album art, and eases into the next song's colour.
-    val artTint = rememberArtTint(nowPlaying?.art)
     val accent by animateColorAsState(
         artTint ?: MaterialTheme.colorScheme.primary,
         animationSpec = tween(ColorFadeMs),
@@ -87,7 +91,8 @@ fun MediaCard(
         label = "art scale",
     )
     DashCard(modifier, glow = if (nowPlaying != null) accent else Color.Unspecified) {
-        BoxWithConstraints(Modifier.fillMaxSize()) {
+        // Swipe the card left for the next song, right for the previous one: easier than aiming for a button.
+        BoxWithConstraints(Modifier.fillMaxSize().swipeToSkip(nowPlaying != null, onNext, onPrevious)) {
             // Everything scales with the card, so nothing is cut off in split-screen or on small screens.
             val artSize = minOf(maxHeight, maxWidth * 0.38f)
             val showArt = maxWidth >= 300.dp
@@ -109,14 +114,14 @@ fun MediaCard(
                             .shadow(if (playing) 18.dp else 4.dp, RoundedCornerShape(16.dp), ambientColor = accent, spotColor = accent)
                             .clip(RoundedCornerShape(16.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable(onClick = onOpenApp),
+                            .clickable(onClick = if (nowPlaying != null) onOpenNowPlaying else onOpenApp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Crossfade(nowPlaying?.art, animationSpec = tween(ColorFadeMs), label = "album art") { art ->
                             if (art != null) {
                                 Image(
                                     art.asImageBitmap(),
-                                    contentDescription = "Album art, opens the music app",
+                                    contentDescription = "Album art, opens the full-screen player",
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize(),
                                 )
@@ -222,6 +227,14 @@ fun MediaCard(
                         )
                     }
                 }
+            }
+            // A thin line along the bottom edge shows how far into the song you are.
+            if (nowPlaying != null && nowPlaying.durationMs > 0) {
+                SongProgressBar(
+                    nowPlaying,
+                    accent,
+                    Modifier.align(Alignment.BottomCenter).offset(y = 12.dp).fillMaxWidth().height(3.dp),
+                )
             }
         }
     }

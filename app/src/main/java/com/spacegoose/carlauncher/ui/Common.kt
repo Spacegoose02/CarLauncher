@@ -3,6 +3,7 @@ package com.spacegoose.carlauncher.ui
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.padding
@@ -47,6 +48,19 @@ val TouchTarget: Dp
     @Composable @ReadOnlyComposable get() = LocalCarSizes.current.touchTarget
 
 /**
+ * Cards are slightly see-through, so the music glow behind the dashboard shows through them like frosted glass.
+ * Opaque enough that text on them keeps its contrast.
+ */
+@Composable
+@ReadOnlyComposable
+fun glassSurface(): Color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+
+/** A hairline edge that catches the light on the glass cards. */
+@Composable
+@ReadOnlyComposable
+fun glassEdge(): BorderStroke = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f))
+
+/**
  * A dashboard card. [glow], when set, washes the card with that colour from the top-left corner (the media
  * card uses the album art's colour), fading into the card's own surface.
  */
@@ -59,8 +73,8 @@ fun DashCard(
     Surface(
         modifier = modifier,
         shape = CardShape,
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp,
+        color = glassSurface(),
+        border = glassEdge(),
     ) {
         val wash = if (glow.isSpecified) {
             Modifier.drawBehind {

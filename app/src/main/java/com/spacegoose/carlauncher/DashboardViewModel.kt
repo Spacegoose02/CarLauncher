@@ -101,6 +101,8 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
 
     var drawerOpen by mutableStateOf(false)
     var settingsOpen by mutableStateOf(false)
+    /** The full-screen now-playing view. */
+    var nowPlayingOpen by mutableStateOf(false)
     var mapStatus by mutableStateOf<String?>(null)
 
     /** True after the map opened inside its box this session; Home then puts it back there. */
@@ -301,6 +303,7 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     fun onHomePressed(activity: ComponentActivity) {
         drawerOpen = false
         settingsOpen = false
+        nowPlayingOpen = false
         if (mapInBox && settings.value.reopenMapOnHome) openMap(activity)
     }
 
@@ -308,6 +311,7 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
         when {
             settingsOpen -> settingsOpen = false
             drawerOpen -> drawerOpen = false
+            nowPlayingOpen -> nowPlayingOpen = false
         }
     }
 

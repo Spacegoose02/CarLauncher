@@ -23,7 +23,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,7 +48,7 @@ fun Dock(
     onRemove: (AppEntry) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(modifier, shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface) {
+    Surface(modifier, shape = RoundedCornerShape(28.dp), color = glassSurface(), border = glassEdge()) {
         BoxWithConstraints(Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
             // Size the icons so the whole dock fits the space it has (the dock sits under the widget
             // column next to the map box). Below 48dp the apps scroll instead of shrinking further.

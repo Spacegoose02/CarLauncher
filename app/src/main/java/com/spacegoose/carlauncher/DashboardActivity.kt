@@ -14,6 +14,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.spacegoose.carlauncher.ui.DashboardScreen
+import com.spacegoose.carlauncher.ui.musicAccent
+import com.spacegoose.carlauncher.ui.rememberArtTint
+import com.spacegoose.carlauncher.ui.theme.MusicAccentTheme
 import com.spacegoose.carlauncher.ui.theme.CarLauncherTheme
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,10 +43,15 @@ class DashboardActivity : ComponentActivity() {
             val serverConfig by vm.serverConfig.collectAsStateWithLifecycle()
             val night by vm.isNight.collectAsStateWithLifecycle()
             val driving by vm.drivingMode.collectAsStateWithLifecycle()
+            val nowPlaying by vm.nowPlaying.collectAsStateWithLifecycle()
             val serverTheme = settings.themeId.takeIf { it.isNotEmpty() }?.let(serverConfig::theme)
+            // Worked out once here: it tints the whole launcher and the media card.
+            val artTint = rememberArtTint(nowPlaying?.art)
             CarLauncherTheme(settings, serverTheme, night) {
-                CompositionLocalProvider(LocalCarSizes provides if (driving) CarSizes.Driving else CarSizes.Normal) {
-                    DashboardScreen(vm)
+                MusicAccentTheme(musicAccent(settings, nowPlaying, artTint)) {
+                    CompositionLocalProvider(LocalCarSizes provides if (driving) CarSizes.Driving else CarSizes.Normal) {
+                        DashboardScreen(vm, artTint)
+                    }
                 }
             }
         }
@@ -69,6 +77,7 @@ class DashboardActivity : ComponentActivity() {
             intent.getBooleanExtra(CarStart.EXTRA_CAR_START, false) -> {
                 vm.drawerOpen = false
                 vm.settingsOpen = false
+                vm.nowPlayingOpen = false
                 vm.runStartActions(this, carStart = true)
             }
             intent.getBooleanExtra(EXTRA_FROM_HOME, false) -> vm.onHomePressed(this)

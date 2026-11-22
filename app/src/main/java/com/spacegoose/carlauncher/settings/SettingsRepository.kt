@@ -40,6 +40,7 @@ class SettingsRepository(context: Context) {
         val SPEED_UNIT = stringPreferencesKey("speed_unit")
         val THEME = stringPreferencesKey("theme_mode")
         val ACCENT = stringPreferencesKey("accent")
+        val MUSIC_COLORS = booleanPreferencesKey("music_colors")
         val HIDE_BARS = booleanPreferencesKey("hide_system_bars")
         val MEDIA_SOURCE = stringPreferencesKey("media_source")
         val WL_WIDGET = intPreferencesKey("wavelength_widget_id")
@@ -74,6 +75,7 @@ class SettingsRepository(context: Context) {
             speedUnit = enumOr(p[Keys.SPEED_UNIT], d.speedUnit),
             themeMode = enumOr(p[Keys.THEME], d.themeMode),
             accent = enumOr(p[Keys.ACCENT], d.accent),
+            musicColors = p[Keys.MUSIC_COLORS] ?: d.musicColors,
             hideSystemBars = p[Keys.HIDE_BARS] ?: d.hideSystemBars,
             mediaSource = enumOr(p[Keys.MEDIA_SOURCE], d.mediaSource),
             wavelengthWidgetId = p[Keys.WL_WIDGET] ?: d.wavelengthWidgetId,
@@ -107,6 +109,7 @@ class SettingsRepository(context: Context) {
         p[Keys.SPEED_UNIT] = s.speedUnit.name
         p[Keys.THEME] = s.themeMode.name
         p[Keys.ACCENT] = s.accent.name
+        p[Keys.MUSIC_COLORS] = s.musicColors
         p[Keys.HIDE_BARS] = s.hideSystemBars
         p[Keys.MEDIA_SOURCE] = s.mediaSource.name
         p[Keys.WL_WIDGET] = s.wavelengthWidgetId

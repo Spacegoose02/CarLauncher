@@ -5,7 +5,12 @@ import androidx.activity.ComponentActivity
 import android.graphics.Rect
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,16 +23,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
@@ -38,6 +44,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.spacegoose.carlauncher.DashboardViewModel
 import com.spacegoose.carlauncher.layout.DashboardLayout
 import com.spacegoose.carlauncher.layout.WidgetType
+import com.spacegoose.carlauncher.media.NowPlaying
 import com.spacegoose.carlauncher.settings.LauncherSettings
 import com.spacegoose.carlauncher.settings.MapPaneContent
 import com.spacegoose.carlauncher.vehicle.SourceStatus
@@ -49,7 +56,7 @@ private const val ShortScreenDp = 640
 private const val WideAspect = 1.7f
 
 @Composable
-fun DashboardScreen(vm: DashboardViewModel) {
+fun DashboardScreen(vm: DashboardViewModel, artTint: Color?) {
     val context = LocalContext.current
     val activity = context.findActivity()
     val settings by vm.settings.collectAsStateWithLifecycle()
@@ -70,6 +77,8 @@ fun DashboardScreen(vm: DashboardViewModel) {
     val obdStatus by vm.obdStatus.collectAsStateWithLifecycle()
     val weather by vm.weather.collectAsStateWithLifecycle()
     val sports by vm.sports.collectAsStateWithLifecycle()
+    // The background glows with the album art while a song plays (see [musicAccent]).
+    val musicTint = musicAccent(settings, nowPlaying, artTint)
 
     // Wide window: widgets + map pane. Narrow (we're one half of split-screen): widgets only, Waze has the rest.
     val configuration = LocalConfiguration.current
@@ -148,6 +157,12 @@ fun DashboardScreen(vm: DashboardViewModel) {
                 onPrevious = vm.graph.media::previous,
                 onNext = vm.graph.media::next,
                 onOpenApp = { vm.graph.media.openSourceApp() },
+                onOpenNowPlaying = {
+                    vm.drawerOpen = false
+                    vm.settingsOpen = false
+                    vm.nowPlayingOpen = true
+                },
+                artTint = artTint,
                 modifier = modifier,
             )
             WidgetType.WAVELENGTH_WIDGET ->
@@ -183,85 +198,122 @@ fun DashboardScreen(vm: DashboardViewModel) {
     }
     LaunchedEffect(layout.hasMap) { if (!layout.hasMap) vm.mapPaneBounds = null }
 
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-    ) {
-        Column(Modifier.fillMaxSize().padding(gap), verticalArrangement = Arrangement.spacedBy(gap)) {
-            Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
-                layout.columns.forEach { column ->
-                    Column(
-                        Modifier.weight(column.weight).fillMaxHeight(),
-                        verticalArrangement = Arrangement.spacedBy(gap),
-                    ) {
-                        column.rows.forEach { row ->
-                            Row(
-                                Modifier.weight(row.weight).fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(gap),
-                            ) {
-                                row.widgets.forEach { Widget(it, Modifier.weight(1f).fillMaxHeight()) }
+    // Background, dashboard, then the full-screen player on top.
+    Box(Modifier.fillMaxSize()) {
+        MusicBackdrop(musicTint, if (musicTint != null) nowPlaying?.art else null)
+        Box(
+            Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+        ) {
+            Column(Modifier.fillMaxSize().padding(gap), verticalArrangement = Arrangement.spacedBy(gap)) {
+                Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
+                    layout.columns.forEach { column ->
+                        Column(
+                            Modifier.weight(column.weight).fillMaxHeight(),
+                            verticalArrangement = Arrangement.spacedBy(gap),
+                        ) {
+                            column.rows.forEach { row ->
+                                Row(
+                                    Modifier.weight(row.weight).fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(gap),
+                                ) {
+                                    row.widgets.forEach { Widget(it, Modifier.weight(1f).fillMaxHeight()) }
+                                }
                             }
                         }
                     }
                 }
+                Dock(
+                    apps = dock,
+                    onOpenDrawer = { vm.drawerOpen = true },
+                    onOpenMap = openMap,
+                    onOpenSettings = { vm.settingsOpen = true },
+                    onLaunch = { vm.launchApp(context, it) },
+                    onRemove = vm::removeFromDock,
+                    modifier = Modifier.fillMaxWidth().height(dockHeight),
+                )
             }
-            Dock(
-                apps = dock,
-                onOpenDrawer = { vm.drawerOpen = true },
-                onOpenMap = openMap,
-                onOpenSettings = { vm.settingsOpen = true },
-                onLaunch = { vm.launchApp(context, it) },
-                onRemove = vm::removeFromDock,
-                modifier = Modifier.fillMaxWidth().height(dockHeight),
-            )
+
+            // With the map floating in its box, overlays stay beside it so the map never covers them: they open
+            // over the widest stretch of columns on one side of the map.
+            val around = layout.widthAroundMap()
+            val overlayModifier = when {
+                !wide -> Modifier.fillMaxSize()
+                around == null -> Modifier.fillMaxHeight().fillMaxWidth(OverlayWidthFraction)
+                around.second > around.first ->
+                    Modifier.align(Alignment.TopEnd).fillMaxHeight().fillMaxWidth(around.second.coerceAtLeast(MinOverlayFraction))
+                else -> Modifier.fillMaxHeight().fillMaxWidth(around.first.coerceAtLeast(MinOverlayFraction))
+            }
+            if (vm.drawerOpen) Box(overlayModifier) {
+                AppDrawer(
+                    apps = apps,
+                    isDocked = vm::isDocked,
+                    onLaunch = { vm.launchApp(context, it) },
+                    onAddToDock = vm::addToDock,
+                    onRemoveFromDock = vm::removeFromDock,
+                    onAppInfo = { vm.openAppInfo(context, it) },
+                    onClose = { vm.drawerOpen = false },
+                )
+            }
+            if (vm.settingsOpen) Box(overlayModifier) {
+                SettingsPanel(
+                    settings = settings,
+                    onChange = vm::updateSettings,
+                    serverConfig = serverConfig,
+                    configStatus = configStatus,
+                    configSyncing = configSyncing,
+                    onSetConfigServer = vm::setConfigServer,
+                    onSyncConfig = vm::syncConfig,
+                    wavelengthInstalled = wavelengthInstalled,
+                    wavelengthWidgetAvailable = remember(wavelengthInstalled) { vm.wavelengthWidgetAvailable() },
+                    onAddWavelengthWidget = addWidget,
+                    onRemoveWavelengthWidget = vm::removeWavelengthWidget,
+                    pairedObdDevices = vm::pairedObdDevices,
+                    onSetObdAdapter = vm::setObdAdapter,
+                    onBluetoothPermissionResult = vm::onBluetoothPermissionResult,
+                    weather = weather,
+                    sports = sports,
+                    onSearchTeams = vm::searchTeams,
+                    onAddTeam = vm::addSportsTeam,
+                    onRemoveTeam = vm::removeSportsTeam,
+                    onClose = { vm.settingsOpen = false },
+                )
+            }
         }
 
-        // With the map floating in its box, overlays stay beside it so the map never covers them: they open
-        // over the widest stretch of columns on one side of the map.
-        val around = layout.widthAroundMap()
-        val overlayModifier = when {
-            !wide -> Modifier.fillMaxSize()
-            around == null -> Modifier.fillMaxHeight().fillMaxWidth(OverlayWidthFraction)
-            around.second > around.first ->
-                Modifier.align(Alignment.TopEnd).fillMaxHeight().fillMaxWidth(around.second.coerceAtLeast(MinOverlayFraction))
-            else -> Modifier.fillMaxHeight().fillMaxWidth(around.first.coerceAtLeast(MinOverlayFraction))
-        }
-        if (vm.drawerOpen) Box(overlayModifier) {
-            AppDrawer(
-                apps = apps,
-                isDocked = vm::isDocked,
-                onLaunch = { vm.launchApp(context, it) },
-                onAddToDock = vm::addToDock,
-                onRemoveFromDock = vm::removeFromDock,
-                onAppInfo = { vm.openAppInfo(context, it) },
-                onClose = { vm.drawerOpen = false },
-            )
-        }
-        if (vm.settingsOpen) Box(overlayModifier) {
-            SettingsPanel(
-                settings = settings,
-                onChange = vm::updateSettings,
-                serverConfig = serverConfig,
-                configStatus = configStatus,
-                configSyncing = configSyncing,
-                onSetConfigServer = vm::setConfigServer,
-                onSyncConfig = vm::syncConfig,
-                wavelengthInstalled = wavelengthInstalled,
-                wavelengthWidgetAvailable = remember(wavelengthInstalled) { vm.wavelengthWidgetAvailable() },
-                onAddWavelengthWidget = addWidget,
-                onRemoveWavelengthWidget = vm::removeWavelengthWidget,
-                pairedObdDevices = vm::pairedObdDevices,
-                onSetObdAdapter = vm::setObdAdapter,
-                onBluetoothPermissionResult = vm::onBluetoothPermissionResult,
-                weather = weather,
-                sports = sports,
-                onSearchTeams = vm::searchTeams,
-                onAddTeam = vm::addSportsTeam,
-                onRemoveTeam = vm::removeSportsTeam,
-                onClose = { vm.settingsOpen = false },
-            )
+        // The full-screen player covers the dashboard until it's closed.
+        val playingNow = nowPlaying
+        AnimatedVisibility(
+            visible = vm.nowPlayingOpen && playingNow != null,
+            enter = fadeIn(tween(250)) + scaleIn(tween(250), initialScale = 0.96f),
+            exit = fadeOut(tween(200)) + scaleOut(tween(200), targetScale = 0.96f),
+        ) {
+            // Keep showing the last song while the player fades out after the music source goes away.
+            var shown by remember { mutableStateOf(playingNow) }
+            if (playingNow != null) shown = playingNow
+            shown?.let { song ->
+                NowPlayingScreen(
+                    nowPlaying = song,
+                    artTint = artTint,
+                    onPlayPause = vm.graph.media::playPause,
+                    onPrevious = vm.graph.media::previous,
+                    onNext = vm.graph.media::next,
+                    onOpenApp = {
+                        vm.nowPlayingOpen = false
+                        vm.graph.media.openSourceApp()
+                    },
+                    onClose = { vm.nowPlayingOpen = false },
+                    modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing),
+                )
+            }
         }
     }
 }
+
+/**
+ * The colour the launcher takes from the music: the album art's colour while a song plays and
+ * "Colours follow the music" is on, otherwise null (the theme's own accent).
+ */
+fun musicAccent(settings: LauncherSettings, nowPlaying: NowPlaying?, artTint: Color?): Color? =
+    artTint.takeIf { settings.musicColors && nowPlaying?.isPlaying == true }
