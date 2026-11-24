@@ -1,11 +1,15 @@
 package com.spacegoose.carlauncher.ui.theme
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -90,6 +94,18 @@ fun CarLauncherTheme(
         )
     }
     MaterialTheme(colorScheme = scheme, typography = CarTypography, content = content)
+}
+
+/**
+ * Swaps the theme's accent for [accent] (the album art's colour) and eases between them, so buttons, switches and
+ * highlights across the launcher take on the song's colour. Null keeps the theme's own accent.
+ */
+@Composable
+fun MusicAccentTheme(accent: Color?, content: @Composable () -> Unit) {
+    val base = MaterialTheme.colorScheme
+    val primary by animateColorAsState(accent ?: base.primary, tween(900), label = "music accent")
+    val scheme = remember(base, primary) { base.copy(primary = primary, secondary = primary) }
+    MaterialTheme(colorScheme = scheme, typography = MaterialTheme.typography, content = content)
 }
 
 private fun ThemeDefinition.colorScheme() = with(colors) {

@@ -27,8 +27,25 @@ data class NowPlaying(
     val isPlaying: Boolean,
     val packageName: String,
     val appLabel: String,
+    /** Song length, or 0 when the player doesn't say. */
+    val durationMs: Long = 0,
+    /** Where the song was at [positionAtMs] (SystemClock.elapsedRealtime), and how fast it moves on from there. */
+    val positionMs: Long = 0,
+    val positionAtMs: Long = 0,
+    val speed: Float = 0f,
 ) {
     val isWavelength: Boolean get() = packageName == Wavelength.PACKAGE
+
+    /** Where the song is at [nowMs] (elapsedRealtime), for a progress bar that moves between player updates. */
+    fun positionAt(nowMs: Long): Long {
+        val moved = if (isPlaying) ((nowMs - positionAtMs) * speed).toLong() else 0L
+        val pos = (positionMs + moved).coerceAtLeast(0L)
+        return if (durationMs > 0) pos.coerceAtMost(durationMs) else pos
+    }
+
+    /** 0..1 through the song, or null when the length isn't known. */
+    fun progressAt(nowMs: Long): Float? =
+        if (durationMs > 0) positionAt(nowMs).toFloat() / durationMs else null
 }
 
 /**
@@ -110,6 +127,10 @@ class MediaRepository(context: Context) {
 
     fun previous() {
         current?.transportControls?.skipToPrevious()
+    }
+
+    fun seekTo(positionMs: Long) {
+        current?.transportControls?.seekTo(positionMs)
     }
 
     /** Opens the app behind the media card (or Wavelength when nothing is playing). */
@@ -214,7 +235,8 @@ class MediaRepository(context: Context) {
             ?: m.getString(MediaMetadataCompat.METADATA_KEY_ALBUM_ARTIST)
             ?: ""
         val art = artOf(m)
-        val state = c.playbackState?.state
+        val playback = c.playbackState
+        val state = playback?.state
         return NowPlaying(
             title = title,
             artist = artist,
@@ -223,6 +245,10 @@ class MediaRepository(context: Context) {
             isPlaying = state == PlaybackStateCompat.STATE_PLAYING || state == PlaybackStateCompat.STATE_BUFFERING,
             packageName = c.packageName,
             appLabel = appLabel(c.packageName),
+            durationMs = m.getLong(MediaMetadataCompat.METADATA_KEY_DURATION).coerceAtLeast(0L),
+            positionMs = playback?.position?.takeIf { it >= 0 } ?: 0L,
+            positionAtMs = playback?.lastPositionUpdateTime ?: 0L,
+            speed = playback?.playbackSpeed ?: 0f,
         )
     }
 

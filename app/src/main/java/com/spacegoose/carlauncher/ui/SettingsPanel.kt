@@ -247,6 +247,9 @@ fun SettingsPanel(
                     Choice("Theme", ThemeMode.entries, settings.themeMode, { it.label }) { v -> onChange { it.copy(themeMode = v) } }
                     AccentPicker(settings.accent) { v -> onChange { it.copy(accent = v) } }
                 }
+                Toggle("Colours follow the music (album art tints the launcher)", settings.musicColors) { v ->
+                    onChange { it.copy(musicColors = v) }
+                }
                 Toggle("Full screen (hide status bar, navigation bar and taskbar)", settings.hideSystemBars) { v ->
                     onChange { it.copy(hideSystemBars = v) }
                 }

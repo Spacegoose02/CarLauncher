@@ -75,6 +75,8 @@ data class LauncherSettings(
     val speedUnit: SpeedUnit = SpeedUnit.MPH,
     val themeMode: ThemeMode = ThemeMode.DARK,
     val accent: AccentColor = AccentColor.SKY,
+    /** The accent and a soft background glow take their colour from the album art while music plays. */
+    val musicColors: Boolean = true,
     /** A theme from the config server, by id; empty uses [themeMode] and [accent]. */
     val themeId: String = "",
     /** The self-hosted config server (layouts and themes), e.g. "http://192.168.1.20:8080"; empty when none. */
