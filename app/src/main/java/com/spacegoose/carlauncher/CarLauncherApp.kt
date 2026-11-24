@@ -45,5 +45,7 @@ class AppGraph(context: Context) {
     val obd = Elm327Source(context)
     val weather = WeatherRepository(context)
     val sports = SportsRepository(context)
+    /** Drive times home and to work, for the heads-up strip. */
+    val driveTimes = com.spacegoose.carlauncher.headsup.DriveTimeRepository()
     val images = ImageCache()
 }

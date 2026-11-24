@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +38,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.spacegoose.carlauncher.apps.AppEntry
+import com.spacegoose.carlauncher.headsup.HeadsUpItem
 
 @Composable
 fun Dock(
@@ -46,6 +48,7 @@ fun Dock(
     onOpenSettings: () -> Unit,
     onLaunch: (AppEntry) -> Unit,
     onRemove: (AppEntry) -> Unit,
+    headsUp: List<HeadsUpItem> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
     Surface(modifier, shape = RoundedCornerShape(28.dp), color = glassSurface(), border = glassEdge()) {
@@ -56,6 +59,7 @@ fun Dock(
             val gap = 8.dp
             val fit = (maxWidth - gap * (slots - 1)) / slots
             val size = minOf(fit, maxHeight - 16.dp, TouchTarget + 8.dp).coerceAtLeast(48.dp)
+            val appsMax = maxWidth * 0.45f
             Row(
                 Modifier.fillMaxSize(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -63,12 +67,17 @@ fun Dock(
             ) {
                 DockButton(Icons.Filled.Apps, "All apps", size, onOpenDrawer)
                 DockButton(Icons.Filled.Navigation, "Map", size, onOpenMap)
+                // With heads-up chips showing, the apps take at most half the dock and scroll; the chips
+                // get the rest.
                 LazyRow(
-                    Modifier.weight(1f),
+                    if (headsUp.isEmpty()) Modifier.weight(1f) else Modifier.widthIn(max = appsMax),
                     horizontalArrangement = Arrangement.spacedBy(gap),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     items(apps, key = { it.key }) { app -> DockApp(app, size, onLaunch, onRemove) }
+                }
+                if (headsUp.isNotEmpty()) {
+                    HeadsUpChips(headsUp, height = size, modifier = Modifier.weight(1f))
                 }
                 DockButton(Icons.Filled.Settings, "Launcher settings", size, onOpenSettings)
             }

@@ -28,6 +28,10 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import com.spacegoose.carlauncher.integrations.sports.Scores
+import com.spacegoose.carlauncher.headsup.HeadsUp
+import com.spacegoose.carlauncher.headsup.HeadsUpItem
+import com.spacegoose.carlauncher.headsup.Place
+import android.text.format.DateFormat
 import com.spacegoose.carlauncher.integrations.sports.TeamPick
 import com.spacegoose.carlauncher.layout.DashboardLayout
 import com.spacegoose.carlauncher.layout.WidgetType
@@ -95,6 +99,14 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
 
     val weather = graph.weather.state
     val sports = graph.sports.state
+
+    /** The heads-up strip above the dock: weather alerts, rain on the way, live games, drive times. */
+    val headsUp: StateFlow<List<HeadsUpItem>> = combine(
+        settings, weather, sports, graph.driveTimes.times, minuteTicker(),
+    ) { s, w, sp, drives, now ->
+        if (!s.headsUpStrip) emptyList()
+        else HeadsUp.pick(w.now, sp.rows, drives, now, use24h = DateFormat.is24HourFormat(getApplication()))
+    }.distinctUntilChanged().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val dockApps: StateFlow<List<AppEntry>> = combine(settings, apps) { s, list -> resolveDock(s, list) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -241,7 +253,8 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
         integrationJobs.forEach { it.cancel() }
         val weatherJob = viewModelScope.launch {
             combine(settings, showing(WidgetType.WEATHER)) { s, shown ->
-                if (shown) WeatherQuery(s.weatherServerUrl, s.weatherKey, s.speedUnit == SpeedUnit.KMH, s.weatherFollowsCar) else null
+                // The heads-up strip warns of rain even when the weather card isn't on the dashboard.
+                if (shown || s.headsUpStrip) WeatherQuery(s.weatherServerUrl, s.weatherKey, s.speedUnit == SpeedUnit.KMH, s.weatherFollowsCar) else null
             }.distinctUntilChanged().collectLatest { q ->
                 if (q == null) return@collectLatest
                 // Give GPS a moment for a first fix, so the first reading is where the car is.
@@ -254,7 +267,7 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
         }
         val sportsJob = viewModelScope.launch {
             combine(settings, showing(WidgetType.SPORTS)) { s, shown ->
-                if (shown) SportsQuery(s.sportsServerUrl, s.sportsKey, s.sportsTeams) else null
+                if (shown || s.headsUpStrip) SportsQuery(s.sportsServerUrl, s.sportsKey, s.sportsTeams) else null
             }.distinctUntilChanged().collectLatest { q ->
                 if (q == null) return@collectLatest
                 while (true) {
@@ -263,7 +276,23 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
                 }
             }
         }
-        integrationJobs = listOf(weatherJob, sportsJob)
+        val driveJob = viewModelScope.launch {
+            settings.map { s ->
+                if (!s.headsUpStrip) emptyMap()
+                else listOfNotNull(s.homePlace?.let { Place.HOME to it }, s.workPlace?.let { Place.WORK to it }).toMap()
+            }.distinctUntilChanged().collectLatest { places ->
+                if (places.isEmpty()) {
+                    graph.driveTimes.clear()
+                    return@collectLatest
+                }
+                withTimeoutOrNull(FIRST_FIX_WAIT_MS) { position.first { it != null } }
+                while (true) {
+                    position.value?.let { graph.driveTimes.refresh(it, places) }
+                    delay(DRIVE_TIME_EVERY_MS)
+                }
+            }
+        }
+        integrationJobs = listOf(weatherJob, sportsJob, driveJob)
     }
 
     private suspend fun refreshWeatherNow(q: WeatherQuery) {
@@ -291,6 +320,16 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     fun addSportsTeam(key: String) = updateSettings { s ->
         s.copy(sportsTeams = (s.sportsTeams + key).distinct().take(MAX_SPORTS_TEAMS))
     }
+
+    /** Saves where the car is now as [place]. False when there's no GPS fix yet. */
+    fun setPlaceHere(place: Place): Boolean {
+        val here = position.value ?: return false
+        updateSettings { s -> if (place == Place.HOME) s.copy(homePlace = here) else s.copy(workPlace = here) }
+        return true
+    }
+
+    fun clearPlace(place: Place) =
+        updateSettings { s -> if (place == Place.HOME) s.copy(homePlace = null) else s.copy(workPlace = null) }
 
     fun removeSportsTeam(key: String) = updateSettings { s -> s.copy(sportsTeams = s.sportsTeams - key) }
 
@@ -434,6 +473,8 @@ class DashboardViewModel(app: Application) : AndroidViewModel(app) {
     private companion object {
         const val VERIFY_DELAY_MS = 3000L
         const val WEATHER_EVERY_MS = 10 * 60_000L
+        /** The public router asks for light use: one request per saved place every few minutes. */
+        const val DRIVE_TIME_EVERY_MS = 3 * 60_000L
         const val MAX_SPORTS_TEAMS = 20
         const val FIRST_FIX_WAIT_MS = 8000L
         const val AUTO_LAUNCH_DELAY_MS = 1200L

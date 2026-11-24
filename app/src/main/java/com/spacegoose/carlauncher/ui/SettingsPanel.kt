@@ -75,6 +75,7 @@ import com.spacegoose.carlauncher.vehicle.obd.PairedDevice
 import com.spacegoose.carlauncher.integrations.sports.SportsState
 import com.spacegoose.carlauncher.integrations.sports.TeamPick
 import com.spacegoose.carlauncher.integrations.weather.WeatherState
+import com.spacegoose.carlauncher.headsup.Place
 
 @Composable
 fun SettingsPanel(
@@ -97,6 +98,8 @@ fun SettingsPanel(
     onSearchTeams: suspend (String) -> Result<List<TeamPick>>,
     onAddTeam: (String) -> Unit,
     onRemoveTeam: (String) -> Unit,
+    onSetPlaceHere: (Place) -> Boolean,
+    onClearPlace: (Place) -> Unit,
     onClose: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -235,6 +238,19 @@ fun SettingsPanel(
                 Section("Sports scores")
                 SportsSettings(settings, sports, onChange, onSearchTeams, onAddTeam, onRemoveTeam)
 
+                Section("Heads-up")
+                Toggle("Show rain on the way, live games and drive times in the dock", settings.headsUpStrip) { v ->
+                    onChange { it.copy(headsUpStrip = v) }
+                }
+                if (settings.headsUpStrip) {
+                    PlaceRow(Place.HOME, settings.homePlace != null, onSetPlaceHere, onClearPlace)
+                    PlaceRow(Place.WORK, settings.workPlace != null, onSetPlaceHere, onClearPlace)
+                    Hint(
+                        "Drive times come from the free OpenStreetMap router (router.project-osrm.org), which is sent " +
+                            "the car's position and the place every few minutes while the launcher is showing."
+                    )
+                }
+
                 Section("Look")
                 val serverTheme = settings.themeId.takeIf { it.isNotEmpty() }?.let(serverConfig::theme)
                 if (serverConfig.themes.isNotEmpty()) {
@@ -298,6 +314,39 @@ private fun ConfigServer(
         }
     }
     status?.let { Hint(it) }
+}
+
+/** "Home: set" with buttons to save where the car is now, or forget it. */
+@Composable
+private fun PlaceRow(place: Place, isSet: Boolean, onSetHere: (Place) -> Boolean, onClear: (Place) -> Unit) {
+    var noFix by remember { mutableStateOf(false) }
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = TouchTarget),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("${place.emoji} ${place.label}", style = MaterialTheme.typography.bodyLarge)
+            Text(
+                when {
+                    noFix -> "No GPS fix yet, try again in a moment"
+                    isSet -> "Saved"
+                    else -> "Not set"
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        FilledTonalButton(
+            onClick = { noFix = !onSetHere(place) },
+            modifier = Modifier.heightIn(min = TouchTarget - 8.dp),
+        ) { Text(if (isSet) "Move to here" else "Set to here") }
+        if (isSet) {
+            FilledTonalButton(onClick = { onClear(place) }, modifier = Modifier.heightIn(min = TouchTarget - 8.dp)) {
+                Text("Clear")
+            }
+        }
+    }
 }
 
 @Composable
