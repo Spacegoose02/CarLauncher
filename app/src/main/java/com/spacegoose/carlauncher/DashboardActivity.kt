@@ -25,6 +25,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import com.spacegoose.carlauncher.automation.CarStart
 import com.spacegoose.carlauncher.ui.CarSizes
 import com.spacegoose.carlauncher.ui.LocalCarSizes
+import com.spacegoose.carlauncher.ui.LocalReducedMotion
 import kotlinx.coroutines.launch
 
 class DashboardActivity : ComponentActivity() {
@@ -49,7 +50,10 @@ class DashboardActivity : ComponentActivity() {
             val artTint = rememberArtTint(nowPlaying?.art)
             CarLauncherTheme(settings, serverTheme, night) {
                 MusicAccentTheme(musicAccent(settings, nowPlaying, artTint)) {
-                    CompositionLocalProvider(LocalCarSizes provides if (driving) CarSizes.Driving else CarSizes.Normal) {
+                    CompositionLocalProvider(
+                        LocalCarSizes provides if (driving) CarSizes.Driving else CarSizes.Normal,
+                        LocalReducedMotion provides driving,
+                    ) {
                         DashboardScreen(vm, artTint)
                     }
                 }

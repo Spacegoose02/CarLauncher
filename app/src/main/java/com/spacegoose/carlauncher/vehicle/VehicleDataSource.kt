@@ -2,9 +2,13 @@ package com.spacegoose.carlauncher.vehicle
 
 import kotlinx.coroutines.flow.StateFlow
 
-enum class SpeedUnit(val label: String, private val perMeterPerSecond: Double) {
-    MPH("mph", 2.2369362920544),
-    KMH("km/h", 3.6);
+/** [gaugeMax] is the top of the speed card's dial. */
+enum class SpeedUnit(val label: String, private val perMeterPerSecond: Double, val gaugeMax: Int) {
+    MPH("mph", 2.2369362920544, 100),
+    KMH("km/h", 3.6, 160);
+
+    /** How far round the dial [speed] is, 0..1. */
+    fun gaugeFraction(speed: Int): Float = (speed.toFloat() / gaugeMax).coerceIn(0f, 1f)
 
     fun fromMetersPerSecond(metersPerSecond: Float): Int =
         Math.round(metersPerSecond.coerceAtLeast(0f) * perMeterPerSecond).toInt()

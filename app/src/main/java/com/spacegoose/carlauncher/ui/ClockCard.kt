@@ -43,13 +43,12 @@ fun ClockCard(modifier: Modifier = Modifier) {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
+                // The digits roll over like a flip clock when the minute changes.
+                RollingText(
                     time,
                     fontSize = big,
-                    lineHeight = big,
                     fontWeight = FontWeight.Light,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
                 )
                 Text(
                     date,

@@ -206,6 +206,8 @@ fun DashboardScreen(vm: DashboardViewModel, artTint: Color?) {
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
         ) {
+            // Cards ease in one after another when the launcher opens, left to right, top to bottom.
+            var cardOrder = 0
             Column(Modifier.fillMaxSize().padding(gap), verticalArrangement = Arrangement.spacedBy(gap)) {
                 Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
                     layout.columns.forEach { column ->
@@ -218,7 +220,11 @@ fun DashboardScreen(vm: DashboardViewModel, artTint: Color?) {
                                     Modifier.weight(row.weight).fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(gap),
                                 ) {
-                                    row.widgets.forEach { Widget(it, Modifier.weight(1f).fillMaxHeight()) }
+                                    row.widgets.forEach {
+                                        val base = Modifier.weight(1f).fillMaxHeight()
+                                        // Not the map: its on-screen position places the floating map app.
+                                        Widget(it, if (it == WidgetType.MAP) base else base.enterOnOpen(cardOrder++))
+                                    }
                                 }
                             }
                         }
@@ -231,7 +237,7 @@ fun DashboardScreen(vm: DashboardViewModel, artTint: Color?) {
                     onOpenSettings = { vm.settingsOpen = true },
                     onLaunch = { vm.launchApp(context, it) },
                     onRemove = vm::removeFromDock,
-                    modifier = Modifier.fillMaxWidth().height(dockHeight),
+                    modifier = Modifier.fillMaxWidth().height(dockHeight).enterOnOpen(cardOrder),
                 )
             }
 
