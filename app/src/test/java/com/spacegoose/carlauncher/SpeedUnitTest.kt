@@ -10,4 +10,11 @@ class SpeedUnitTest {
         assertEquals(100, SpeedUnit.KMH.fromMetersPerSecond(27.7778f))
         assertEquals(0, SpeedUnit.MPH.fromMetersPerSecond(-1f))
     }
+
+    @Test fun gaugeFraction() {
+        assertEquals(0.5f, SpeedUnit.MPH.gaugeFraction(50), 0.0001f)
+        assertEquals(0.5f, SpeedUnit.KMH.gaugeFraction(80), 0.0001f)
+        assertEquals(1f, SpeedUnit.MPH.gaugeFraction(140), 0.0001f)
+        assertEquals(0f, SpeedUnit.KMH.gaugeFraction(0), 0.0001f)
+    }
 }

@@ -180,7 +180,9 @@ fun NowPlayingScreen(
                             lineHeight = title * 1.15f,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
-                            modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE),
+                            overflow = TextOverflow.Ellipsis,
+                            // Long titles scroll when parked; in driving mode they stay still and are cut short.
+                            modifier = if (LocalReducedMotion.current) Modifier else Modifier.basicMarquee(iterations = Int.MAX_VALUE),
                         )
                     }
                     val by = listOf(nowPlaying.artist, nowPlaying.album).filter { it.isNotBlank() }.joinToString("  ·  ")
