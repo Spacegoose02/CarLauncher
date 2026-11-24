@@ -59,6 +59,7 @@ fun Dock(
             val gap = 8.dp
             val fit = (maxWidth - gap * (slots - 1)) / slots
             val size = minOf(fit, maxHeight - 16.dp, TouchTarget + 8.dp).coerceAtLeast(48.dp)
+            val appsMax = maxWidth * 0.45f
             Row(
                 Modifier.fillMaxSize(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -69,7 +70,7 @@ fun Dock(
                 // With heads-up chips showing, the apps take at most half the dock and scroll; the chips
                 // get the rest.
                 LazyRow(
-                    if (headsUp.isEmpty()) Modifier.weight(1f) else Modifier.widthIn(max = maxWidth * 0.45f),
+                    if (headsUp.isEmpty()) Modifier.weight(1f) else Modifier.widthIn(max = appsMax),
                     horizontalArrangement = Arrangement.spacedBy(gap),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
