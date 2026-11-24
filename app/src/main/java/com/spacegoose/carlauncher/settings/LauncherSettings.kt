@@ -99,6 +99,11 @@ data class LauncherSettings(
     val sportsKey: String = "",
     /** Without a key: teams picked in the launcher, as "sport:teamId" (e.g. "cfb:259"), or a sport like "f1". */
     val sportsTeams: List<String> = DEFAULT_SPORTS_TEAMS,
+    /** Saved places for drive times on the heads-up strip; null until set. */
+    val homePlace: com.spacegoose.carlauncher.vehicle.GeoPoint? = null,
+    val workPlace: com.spacegoose.carlauncher.vehicle.GeoPoint? = null,
+    /** The strip above the dock: rain on the way, live games, drive times. */
+    val headsUpStrip: Boolean = true,
 ) {
     companion object {
         const val NO_WIDGET = -1

@@ -1,5 +1,6 @@
 package com.spacegoose.carlauncher.settings
 
+import com.spacegoose.carlauncher.headsup.DriveTimes
 import android.content.Context
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
@@ -59,6 +60,9 @@ class SettingsRepository(context: Context) {
         val SPORTS_URL = stringPreferencesKey("sports_server_url")
         val SPORTS_KEY = stringPreferencesKey("sports_key")
         val SPORTS_TEAMS = stringPreferencesKey("sports_teams")
+        val HOME_PLACE = stringPreferencesKey("home_place")
+        val WORK_PLACE = stringPreferencesKey("work_place")
+        val HEADS_UP = booleanPreferencesKey("heads_up_strip")
     }
 
     private fun read(p: Preferences): LauncherSettings {
@@ -94,6 +98,9 @@ class SettingsRepository(context: Context) {
             sportsServerUrl = p[Keys.SPORTS_URL] ?: d.sportsServerUrl,
             sportsKey = p[Keys.SPORTS_KEY] ?: d.sportsKey,
             sportsTeams = p[Keys.SPORTS_TEAMS]?.split(',')?.filter { it.isNotBlank() } ?: d.sportsTeams,
+            homePlace = DriveTimes.decode(p[Keys.HOME_PLACE]),
+            workPlace = DriveTimes.decode(p[Keys.WORK_PLACE]),
+            headsUpStrip = p[Keys.HEADS_UP] ?: d.headsUpStrip,
         )
     }
 
@@ -127,6 +134,9 @@ class SettingsRepository(context: Context) {
         p[Keys.SPORTS_URL] = s.sportsServerUrl
         p[Keys.SPORTS_KEY] = s.sportsKey
         p[Keys.SPORTS_TEAMS] = s.sportsTeams.joinToString(",")
+        p[Keys.HOME_PLACE] = DriveTimes.encode(s.homePlace)
+        p[Keys.WORK_PLACE] = DriveTimes.encode(s.workPlace)
+        p[Keys.HEADS_UP] = s.headsUpStrip
         val dock = s.dockApps
         if (dock == null) p.remove(Keys.DOCK) else p[Keys.DOCK] = dock.joinToString("\n")
     }

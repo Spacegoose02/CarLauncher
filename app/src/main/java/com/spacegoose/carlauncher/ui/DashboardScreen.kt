@@ -76,6 +76,7 @@ fun DashboardScreen(vm: DashboardViewModel, artTint: Color?) {
     val obdReading by vm.obdReading.collectAsStateWithLifecycle()
     val obdStatus by vm.obdStatus.collectAsStateWithLifecycle()
     val weather by vm.weather.collectAsStateWithLifecycle()
+    val headsUp by vm.headsUp.collectAsStateWithLifecycle()
     val sports by vm.sports.collectAsStateWithLifecycle()
     // The background glows with the album art while a song plays (see [musicAccent]).
     val musicTint = musicAccent(settings, nowPlaying, artTint)
@@ -237,6 +238,9 @@ fun DashboardScreen(vm: DashboardViewModel, artTint: Color?) {
                     onOpenSettings = { vm.settingsOpen = true },
                     onLaunch = { vm.launchApp(context, it) },
                     onRemove = vm::removeFromDock,
+                    // What matters right now (rain, live games, drive times) rides in the dock, so the cards
+                    // and the map box never move when it changes.
+                    headsUp = headsUp,
                     modifier = Modifier.fillMaxWidth().height(dockHeight).enterOnOpen(cardOrder),
                 )
             }
@@ -283,6 +287,8 @@ fun DashboardScreen(vm: DashboardViewModel, artTint: Color?) {
                     onSearchTeams = vm::searchTeams,
                     onAddTeam = vm::addSportsTeam,
                     onRemoveTeam = vm::removeSportsTeam,
+                    onSetPlaceHere = vm::setPlaceHere,
+                    onClearPlace = vm::clearPlace,
                     onClose = { vm.settingsOpen = false },
                 )
             }
